@@ -1,0 +1,703 @@
+#!/usr/bin/env bash
+#
+# bc250-paddles — L4/R4 of the 8BitDo Ultimate 2C Wireless as Steam Input back
+# buttons over the 2.4 GHz receiver.
+#
+# In DInput mode the receiver (2dc8:301c) does send L4/R4 as their own buttons,
+# but Steam builds an automatic SDL mapping without them and ignores (and
+# overwrites) SDL_GamepadBind in config.vdf. A mapping passed in the
+# SDL_GAMECONTROLLERCONFIG environment variable is honoured. This tool sets and
+# removes that variable for native Steam (environment.d) and Flatpak Steam
+# (a user override).
+
+set -euo pipefail
+
+readonly PROGRAM="bc250-paddles"
+readonly VERSION="0.1.0"
+
+readonly ENV_NAME="SDL_GAMECONTROLLERCONFIG"
+readonly GUID="03000000c82d00001c30000011010000"
+# Measured on the pad 1.06 / receiver 1.00: L4 = BTN_C = b2, R4 = BTN_Z = b5.
+# crc:6fed is the CRC of the device name; without it Steam's own mapping wins.
+readonly MAPPING="${GUID},8BitDo Ultimate 2C Wireless Controller,crc:6fed,a:b0,b:b1,back:b10,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b12,leftshoulder:b6,leftstick:b13,lefttrigger:a5,leftx:a0,lefty:a1,paddle1:b5,paddle2:b2,rightshoulder:b7,rightstick:b14,righttrigger:a4,rightx:a2,righty:a3,start:b11,x:b3,y:b4,platform:Linux,"
+readonly FLATPAK_APP="com.valvesoftware.Steam"
+
+# Test hook-in points. They are not set by hand in normal use.
+FLATPAK="${BC250_PADDLES_FLATPAK:-flatpak}"
+SYSTEMCTL="${BC250_PADDLES_SYSTEMCTL:-systemctl}"
+PROC_DIR="${BC250_PADDLES_PROC:-/proc}"
+INPUT_DEVICES="${BC250_PADDLES_INPUT_DEVICES:-/proc/bus/input/devices}"
+SYS_DIR="${BC250_PADDLES_SYS:-/sys}"
+
+CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
+readonly ENVD_FILE="${CONFIG_HOME}/environment.d/90-${PROGRAM}.conf"
+readonly NATIVE_STEAM="${HOME}/.local/share/Steam"
+readonly FLATPAK_STEAM="${HOME}/.var/app/${FLATPAK_APP}/.local/share/Steam"
+readonly FLATPAK_OVERRIDE="${FLATPAK_USER_DIR:-${HOME}/.local/share/flatpak}/overrides/${FLATPAK_APP}"
+
+DRY_RUN=0
+TARGET=""
+
+# --------------------------------------------------------------------------
+# Translations
+# --------------------------------------------------------------------------
+
+declare -A MSG_PL=(
+    [state_on]="MAPOWANIE WŁĄCZONE"
+    [state_off]="mapowanie wyłączone"
+    [state_partial]="mapowanie częściowe (%s/%s)"
+    [state_nosteam]="nie znaleziono Steama"
+    [head_state]="Stan"
+    [head_steam]="Instalacje Steama"
+    [head_running]="Uruchomiony Steam"
+    [head_log]="Mapowanie użyte przez Steam (logs/controller.txt)"
+    [head_pads]="Pady 8BitDo"
+    [native]="natywny"
+    [flatpak]="flatpak"
+    [set_envd]="ustawione (environment.d)"
+    [set_override]="ustawione (override Flatpaka)"
+    [not_set]="nieustawione"
+    [foreign]="ustawione przez kogoś innego — inne mapowanie"
+    [unset_listed]="uwaga: %s jest na liście unset-environment"
+    [shadowed]="uwaga: %s ustawia też %s i nadpisuje nasz plik"
+    [running_yes]="pid %s (%s): mapowanie w środowisku procesu"
+    [running_no]="pid %s (%s): brak mapowania w środowisku — uruchom Steama ponownie"
+    [running_unknown]="pid %s (%s): środowisko procesu nieczytelne — sprawdź log niżej"
+    [running_none]="Steam nie działa"
+    [log_paddles]="%s: %s — z paddle (L4/R4 dostępne)"
+    [log_nopaddles]="%s: %s — BEZ paddle (mapowanie automatyczne)"
+    [log_none]="%s: brak wpisu dla 2dc8/301c"
+    [pad_dinput]="%s  2dc8:301c DInput przez odbiornik — L4/R4 wysyłane"
+    [pad_xinput]="%s  2dc8:310a XInput — L4/R4 NIE są wysyłane, mapowanie nic nie da"
+    [pad_bt]="%s  2dc8:301b Bluetooth — Steam obsługuje L4/R4 sam"
+    [serial]="numer seryjny:"
+    [pads_count]="padów: %s — jedno mapowanie obejmuje wszystkie"
+    [pad_none]="brak podłączonego pada (odbiornik bez pada to 301c IDLE bez urządzenia wejściowego)"
+    [no_target]="nie znaleziono Steama (natywnego ani z Flatpaka) — podaj --target"
+    [bad_target]="nieznany cel '%s' (native, flatpak, all)"
+    [refuse_foreign]="%s: %s ma już inną wartość %s — nie nadpisuję"
+    [already_on]="%s: %s — mapowanie już ustawione"
+    [on_envd]="  + zapis %s"
+    [on_override]="  + flatpak override --user --env=%s=… %s"
+    [on_unset_fix]="  + usunięcie %s z unset-environment w %s"
+    [on_sysenv]="  + systemctl --user set-environment %s=…"
+    [off_envd]="  + usunięcie %s"
+    [off_override]="  + usunięcie %s z %s"
+    [off_sysenv]="  + systemctl --user unset-environment %s"
+    [nothing_off]="%s: %s — mapowanie nie było ustawione"
+    [sysenv_failed]="%s: systemctl --user niedostępny — zmiana zadziała po ponownym zalogowaniu"
+    [done_on]="%s: mapowanie włączone — uruchom Steama ponownie (natywny w Gaming Mode: wyloguj się albo zrestartuj)"
+    [done_off]="%s: mapowanie wyłączone — uruchom Steama ponownie"
+    [unknown_option]="nieznana opcja '%s' (zobacz --help)"
+    [unknown_command]="nieznana komenda '%s' (zobacz --help)"
+    [two_commands]="podano dwie komendy: '%s' i '%s'"
+    [usage_title]="%s %s — L4/R4 padów 8BitDo Ultimate 2C jako tylne przyciski w Steam (odbiornik 2,4 GHz)"
+    [usage_usage]="Użycie: %s <komenda> [opcje]"
+    [usage_commands]="Komendy:"
+    [usage_status]="  status      stan mapowania, uruchomiony Steam, log Steama, podłączone pady"
+    [usage_on]="  on          ustawia mapowanie (zmienna %s)"
+    [usage_off]="  off         usuwa mapowanie ustawione przez %s"
+    [usage_mapping]="  mapping     wypisuje samo mapowanie SDL"
+    [usage_options]="Opcje:"
+    [usage_target]="  -t, --target CEL  native, flatpak albo all (domyślnie: wykryte instalacje)"
+    [usage_dry]="  -n, --dry-run     pokazuje, co zostałoby zrobione, bez zmian"
+    [usage_lang]="  -l, --lang JĘZ    język komunikatów: pl, en (domyślnie z locale)"
+    [usage_help]="  -h, --help        ta pomoc"
+    [usage_version]="  -V, --version     wersja"
+    [usage_exit]="Kody wyjścia komendy status:"
+    [usage_exit0]="  0  mapowanie ustawione we wszystkich wykrytych instalacjach"
+    [usage_exit1]="  1  mapowanie nieustawione albo brak Steama"
+    [usage_exit2]="  2  mapowanie ustawione tylko w części instalacji"
+    [usage_req]="Warunek: pad i odbiornik w trybie DInput (2dc8:301c) — zobacz README."
+)
+
+declare -A MSG_EN=(
+    [state_on]="MAPPING ON"
+    [state_off]="mapping off"
+    [state_partial]="partial mapping (%s/%s)"
+    [state_nosteam]="Steam not found"
+    [head_state]="State"
+    [head_steam]="Steam installations"
+    [head_running]="Running Steam"
+    [head_log]="Mapping used by Steam (logs/controller.txt)"
+    [head_pads]="8BitDo pads"
+    [native]="native"
+    [flatpak]="flatpak"
+    [set_envd]="set (environment.d)"
+    [set_override]="set (Flatpak override)"
+    [not_set]="not set"
+    [foreign]="set by somebody else — a different mapping"
+    [unset_listed]="warning: %s is on the unset-environment list"
+    [shadowed]="warning: %s also sets %s and overrides our file"
+    [running_yes]="pid %s (%s): mapping in the process environment"
+    [running_no]="pid %s (%s): no mapping in the environment — restart Steam"
+    [running_unknown]="pid %s (%s): the process environment is not readable — see the log below"
+    [running_none]="Steam is not running"
+    [log_paddles]="%s: %s — with paddles (L4/R4 available)"
+    [log_nopaddles]="%s: %s — WITHOUT paddles (automatic mapping)"
+    [log_none]="%s: no entry for 2dc8/301c"
+    [pad_dinput]="%s  2dc8:301c DInput over the receiver — L4/R4 are sent"
+    [pad_xinput]="%s  2dc8:310a XInput — L4/R4 are NOT sent, the mapping cannot help"
+    [pad_bt]="%s  2dc8:301b Bluetooth — Steam handles L4/R4 on its own"
+    [serial]="serial:"
+    [pads_count]="%s pads — one mapping covers them all"
+    [pad_none]="no pad connected (a receiver without a pad is 301c IDLE with no input device)"
+    [no_target]="no Steam found (native or Flatpak) — use --target"
+    [bad_target]="unknown target '%s' (native, flatpak, all)"
+    [refuse_foreign]="%s: %s already has a different %s — not overwriting it"
+    [already_on]="%s: %s — the mapping is already set"
+    [on_envd]="  + writing %s"
+    [on_override]="  + flatpak override --user --env=%s=… %s"
+    [on_unset_fix]="  + removing %s from unset-environment in %s"
+    [on_sysenv]="  + systemctl --user set-environment %s=…"
+    [off_envd]="  + removing %s"
+    [off_override]="  + removing %s from %s"
+    [off_sysenv]="  + systemctl --user unset-environment %s"
+    [nothing_off]="%s: %s — the mapping was not set"
+    [sysenv_failed]="%s: systemctl --user unavailable — the change takes effect after the next login"
+    [done_on]="%s: mapping on — restart Steam (native in Gaming Mode: log out or reboot)"
+    [done_off]="%s: mapping off — restart Steam"
+    [unknown_option]="unknown option '%s' (see --help)"
+    [unknown_command]="unknown command '%s' (see --help)"
+    [two_commands]="two commands given: '%s' and '%s'"
+    [usage_title]="%s %s — L4/R4 of 8BitDo Ultimate 2C pads as Steam back buttons (2.4 GHz receiver)"
+    [usage_usage]="Usage: %s <command> [options]"
+    [usage_commands]="Commands:"
+    [usage_status]="  status      mapping state, running Steam, Steam's log, connected pads"
+    [usage_on]="  on          set the mapping (the %s variable)"
+    [usage_off]="  off         remove the mapping set by %s"
+    [usage_mapping]="  mapping     print the bare SDL mapping"
+    [usage_options]="Options:"
+    [usage_target]="  -t, --target T    native, flatpak or all (default: the detected installations)"
+    [usage_dry]="  -n, --dry-run     show what would be done, without making changes"
+    [usage_lang]="  -l, --lang LANG   message language: pl, en (defaults to the locale)"
+    [usage_help]="  -h, --help        this help"
+    [usage_version]="  -V, --version     version"
+    [usage_exit]="Exit codes of the status command:"
+    [usage_exit0]="  0  the mapping is set in every detected installation"
+    [usage_exit1]="  1  the mapping is not set, or no Steam found"
+    [usage_exit2]="  2  the mapping is set in some installations only"
+    [usage_req]="Requirement: pad and receiver in DInput mode (2dc8:301c) — see the README."
+)
+
+# Order: --lang, BC250_LANG, the system locale, then English.
+detect_language() {
+    local candidate code
+    for candidate in "${1:-}" "${BC250_LANG:-}" "${LC_ALL:-}" "${LC_MESSAGES:-}" "${LANG:-}"; do
+        [ -n "$candidate" ] || continue
+        code="${candidate%%.*}"
+        code="${code%%_*}"
+        case "$code" in
+            pl|en) printf '%s' "$code"; return 0 ;;
+        esac
+    done
+    printf 'en'
+}
+
+LANGUAGE="$(detect_language "")"
+
+msg() {
+    local key="$1"; shift
+    local template
+    if [ "$LANGUAGE" = "pl" ]; then
+        template="${MSG_PL[$key]-$key}"
+    else
+        template="${MSG_EN[$key]-$key}"
+    fi
+    # shellcheck disable=SC2059 -- the template comes from our own catalogue
+    printf "$template" "$@"
+}
+
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+    C_OK=$'\033[32m'; C_WARN=$'\033[33m'; C_BAD=$'\033[31m'
+    C_DIM=$'\033[2m'; C_HEAD=$'\033[1m'; C_OFF=$'\033[0m'
+else
+    C_OK=""; C_WARN=""; C_BAD=""; C_DIM=""; C_HEAD=""; C_OFF=""
+fi
+
+die() { printf '%s: %s\n' "$PROGRAM" "$*" >&2; exit 1; }
+note() { printf '%s\n' "$*" >&2; }
+
+# ---------------------------------------------------------------------------
+# Reading state
+# ---------------------------------------------------------------------------
+
+native_installed() { [ -d "${NATIVE_STEAM}/ubuntu12_32" ]; }
+flatpak_installed() { [ -d "${FLATPAK_STEAM}/ubuntu12_32" ]; }
+
+# Installations the commands act on: --target, otherwise the detected ones.
+targets() {
+    case "$TARGET" in
+        native|flatpak) printf '%s\n' "$TARGET" ;;
+        all) printf 'native\nflatpak\n' ;;
+        "")
+            native_installed && printf 'native\n'
+            flatpak_installed && printf 'flatpak\n'
+            ;;
+    esac
+    return 0
+}
+
+steam_dir() {
+    if [ "$1" = "native" ]; then printf '%s' "$NATIVE_STEAM"; else printf '%s' "$FLATPAK_STEAM"; fi
+}
+
+# The same path with $HOME shortened to ~, for display.
+short_path() {
+    # shellcheck disable=SC2088  # a literal ~ is the point here
+    case "$1" in
+        "${HOME}"/*) printf '~/%s' "${1#"${HOME}"/}" ;;
+        *) printf '%s' "$1" ;;
+    esac
+}
+
+# Value of a key inside one [section] of a GKeyFile (the Flatpak override format).
+keyfile_get() {
+    local file="$1" section="$2" key="$3"
+    [ -f "$file" ] || return 0
+    awk -v s="[$section]" -v k="$key" '
+        /^\[/ { in_s = ($0 == s); next }
+        in_s && index($0, k "=") == 1 { print substr($0, length(k) + 2); exit }
+    ' "$file"
+}
+
+envd_value() {
+    [ -f "$ENVD_FILE" ] || return 0
+    sed -n "s/^${ENV_NAME}=\"\{0,1\}\([^\"]*\)\"\{0,1\}$/\1/p" "$ENVD_FILE" | head -1
+}
+
+override_value() { keyfile_get "$FLATPAK_OVERRIDE" Environment "$ENV_NAME"; }
+
+override_unset_listed() {
+    case ";$(keyfile_get "$FLATPAK_OVERRIDE" Context unset-environment);" in
+        *";${ENV_NAME};"*) return 0 ;;
+    esac
+    return 1
+}
+
+# Prints one of: ours, foreign, none.
+target_state() {
+    local value
+    if [ "$1" = "native" ]; then value="$(envd_value)"; else value="$(override_value)"; fi
+    if [ -z "$value" ]; then
+        printf 'none'
+    elif [ "$value" = "$MAPPING" ]; then
+        printf 'ours'
+    else
+        printf 'foreign'
+    fi
+}
+
+# environment.d files are read in lexical order; a later one setting the same
+# variable wins over ours.
+shadowing_envd_file() {
+    local dir file
+    dir="$(dirname "$ENVD_FILE")"
+    [ -d "$dir" ] || return 0
+    for file in "$dir"/*.conf; do
+        [ -f "$file" ] || continue
+        [ "$file" = "$ENVD_FILE" ] && continue
+        [[ "$(basename "$file")" > "$(basename "$ENVD_FILE")" ]] || continue
+        grep -q "^${ENV_NAME}=" "$file" && { printf '%s' "$file"; return 0; }
+    done
+    return 0
+}
+
+# Lines "pid kind has-mapping" for every running Steam client process.
+running_steam() {
+    local dir pid comm kind envfile has env_text
+    for dir in "$PROC_DIR"/[0-9]*; do
+        [ -r "${dir}/comm" ] || continue
+        comm="$(cat "${dir}/comm" 2>/dev/null || true)"
+        [ "$comm" = "steam" ] || continue
+        pid="$(basename "$dir")"
+        envfile="${dir}/environ"
+        kind="native"
+        if tr '\0' '\n' < "$envfile" 2>/dev/null | grep -q "^FLATPAK_ID=${FLATPAK_APP}$"; then
+            kind="flatpak"
+        fi
+        # a sandboxed process may hide its environment even from the same user
+        if ! env_text="$(tr '\0' '\n' < "$envfile" 2>/dev/null)"; then
+            has="unknown"
+        elif printf '%s\n' "$env_text" | grep -qF "${ENV_NAME}=${GUID}"; then
+            has="yes"
+        else
+            has="no"
+        fi
+        printf '%s %s %s\n' "$pid" "$kind" "$has"
+    done
+    return 0
+}
+
+# Last "SDL Mapping for 2dc8/301c" line of Steam's controller log.
+last_logged_mapping() {
+    local log="${1}/logs/controller.txt"
+    [ -f "$log" ] || return 0
+    grep 'SDL Mapping for 2dc8/301c:' "$log" | tail -1
+}
+
+# Lines "kind handler uniq" for every 8BitDo pad seen by the input layer — any
+# number of them; uniq is the receiver serial (the BT address over Bluetooth).
+# Only devices with a jsN handler are pads: in XInput mode the receiver also
+# brings a keyboard and a mouse with the same IDs.
+connected_pads() {
+    [ -r "$INPUT_DEVICES" ] || return 0
+    local mode handler uniq serial
+    while read -r mode handler uniq; do
+        # xpad reports no uniq; the USB device above the interface has the serial
+        if [ "$uniq" = "-" ]; then
+            serial="${SYS_DIR}/class/input/${handler}/device/device/../serial"
+            [ -r "$serial" ] && uniq="$(cat "$serial")"
+        fi
+        printf '%s %s %s\n' "$mode" "$handler" "${uniq:--}"
+    done < <(awk '
+        /^I:/ {
+            bus = ""; product = ""; uniq = "-"
+            for (i = 2; i <= NF; i++) {
+                split($i, kv, "=")
+                if (kv[1] == "Bus") bus = kv[2]
+                if (kv[1] == "Vendor") vendor = kv[2]
+                if (kv[1] == "Product") product = kv[2]
+            }
+        }
+        /^U:/ { sub(/^U: Uniq=/, ""); if ($0 != "") uniq = $0 }
+        /^H:/ && vendor == "2dc8" {
+            ev = ""; js = 0
+            sub(/^Handlers=/, "", $2)
+            for (i = 2; i <= NF; i++) {
+                if ($i ~ /^event[0-9]+$/) ev = $i
+                if ($i ~ /^js[0-9]+$/) js = 1
+            }
+            if (ev == "" || !js) next
+            if (product == "301c" && bus == "0003") print "dinput " ev " " uniq
+            else if (product == "310a") print "xinput " ev " " uniq
+            else if (product == "301b") print "bt " ev " " uniq
+            vendor = ""
+        }
+    ' "$INPUT_DEVICES")
+}
+
+# ---------------------------------------------------------------------------
+# Changing state
+# ---------------------------------------------------------------------------
+
+dry_note() {
+    printf '%s%s%s\n' "$C_DIM" "$*" "$C_OFF"
+}
+
+write_envd() {
+    if [ "$DRY_RUN" -eq 1 ]; then
+        dry_note "$(msg on_envd "$ENVD_FILE")"
+        return 0
+    fi
+    mkdir -p "$(dirname "$ENVD_FILE")"
+    cat > "$ENVD_FILE" <<EOF
+# Created by ${PROGRAM} ${VERSION}. Removed by: ${PROGRAM} off
+# 8BitDo Ultimate 2C Wireless over the 2.4 GHz receiver in DInput mode
+# (2dc8:301c): L4/R4 as Steam Input back buttons (paddle2/paddle1).
+${ENV_NAME}="${MAPPING}"
+EOF
+}
+
+set_user_manager_env() {
+    if [ "$DRY_RUN" -eq 1 ]; then
+        dry_note "$(msg on_sysenv "$ENV_NAME")"
+        return 0
+    fi
+    "$SYSTEMCTL" --user set-environment "${ENV_NAME}=${MAPPING}" 2>/dev/null \
+        || note "$(msg sysenv_failed "$PROGRAM")"
+}
+
+unset_user_manager_env() {
+    if [ "$DRY_RUN" -eq 1 ]; then
+        dry_note "$(msg off_sysenv "$ENV_NAME")"
+        return 0
+    fi
+    "$SYSTEMCTL" --user unset-environment "$ENV_NAME" 2>/dev/null \
+        || note "$(msg sysenv_failed "$PROGRAM")"
+}
+
+# Drops a key from one section of the override file, an emptied section with
+# it, and the whole file when nothing is left — the state before "on".
+keyfile_drop_key() {
+    local file="$1" section="$2" key="$3" tmp
+    tmp="$(mktemp)"
+    awk -v s="[$section]" -v k="$key" '
+        /^\[/ { in_s = ($0 == s) }
+        in_s && index($0, k "=") == 1 { next }
+        { print }
+    ' "$file" > "$tmp"
+    awk '
+        /^\[/ { if (header != "" && body != "") printf "%s%s", header, body
+                header = $0 "\n"; body = ""; next }
+        /^[[:space:]]*$/ { next }
+        { body = body $0 "\n" }
+        END { if (header != "" && body != "") printf "%s%s", header, body }
+    ' "$tmp" > "$file"
+    rm -f "$tmp"
+    [ -s "$file" ] || rm -f "$file"
+}
+
+# Removes our variable from [Context] unset-environment=A;B; — left there by an
+# earlier "flatpak override --unset-env", it would cancel the value we set.
+drop_from_unset_list() {
+    local file="$FLATPAK_OVERRIDE" list rest tmp
+    list="$(keyfile_get "$file" Context unset-environment)"
+    rest="$(printf '%s' "$list" | tr ';' '\n' | grep -vxF "$ENV_NAME" | grep -v '^$' | tr '\n' ';' || true)"
+    if [ -z "$rest" ]; then
+        keyfile_drop_key "$file" Context unset-environment
+        return 0
+    fi
+    tmp="$(mktemp)"
+    awk -v s="[Context]" -v v="unset-environment=${rest}" '
+        /^\[/ { in_s = ($0 == s) }
+        in_s && index($0, "unset-environment=") == 1 { print v; next }
+        { print }
+    ' "$file" > "$tmp"
+    cat "$tmp" > "$file"
+    rm -f "$tmp"
+}
+
+on_native() {
+    case "$(target_state native)" in
+        ours)    msg already_on "$PROGRAM" "$(msg native)"; printf '\n'; return 0 ;;
+        foreign) die "$(msg refuse_foreign "$(msg native)" "$ENVD_FILE" "$ENV_NAME")" ;;
+    esac
+    write_envd
+    set_user_manager_env
+}
+
+on_flatpak() {
+    case "$(target_state flatpak)" in
+        ours)
+            if ! override_unset_listed; then
+                msg already_on "$PROGRAM" "$(msg flatpak)"; printf '\n'; return 0
+            fi ;;
+        foreign) die "$(msg refuse_foreign "$(msg flatpak)" "$FLATPAK_OVERRIDE" "$ENV_NAME")" ;;
+    esac
+    if override_unset_listed; then
+        if [ "$DRY_RUN" -eq 1 ]; then
+            dry_note "$(msg on_unset_fix "$ENV_NAME" "$FLATPAK_OVERRIDE")"
+        else
+            drop_from_unset_list
+        fi
+    fi
+    if [ "$DRY_RUN" -eq 1 ]; then
+        dry_note "$(msg on_override "$ENV_NAME" "$FLATPAK_APP")"
+        return 0
+    fi
+    "$FLATPAK" override --user --env="${ENV_NAME}=${MAPPING}" "$FLATPAK_APP"
+}
+
+off_native() {
+    if [ ! -f "$ENVD_FILE" ]; then
+        msg nothing_off "$PROGRAM" "$(msg native)"; printf '\n'
+        return 0
+    fi
+    if [ "$DRY_RUN" -eq 1 ]; then
+        dry_note "$(msg off_envd "$ENVD_FILE")"
+    else
+        rm -f "$ENVD_FILE"
+    fi
+    unset_user_manager_env
+}
+
+off_flatpak() {
+    # only our own value is removed; somebody else's mapping stays where it is
+    if [ "$(target_state flatpak)" != "ours" ]; then
+        msg nothing_off "$PROGRAM" "$(msg flatpak)"; printf '\n'
+        return 0
+    fi
+    if [ "$DRY_RUN" -eq 1 ]; then
+        dry_note "$(msg off_override "$ENV_NAME" "$FLATPAK_OVERRIDE")"
+        return 0
+    fi
+    keyfile_drop_key "$FLATPAK_OVERRIDE" Environment "$ENV_NAME"
+}
+
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
+
+cmd_status() {
+    local list total=0 set=0 kind state shown verdict code
+    list="$(targets)"
+    for kind in $list; do
+        total=$((total + 1))
+        [ "$(target_state "$kind")" = "ours" ] && set=$((set + 1))
+    done
+
+    if [ "$total" -eq 0 ]; then
+        verdict="${C_WARN}$(msg state_nosteam)${C_OFF}"; code=1
+    elif [ "$set" -eq "$total" ]; then
+        verdict="${C_OK}$(msg state_on)${C_OFF}"; code=0
+    elif [ "$set" -eq 0 ]; then
+        verdict="${C_WARN}$(msg state_off)${C_OFF}"; code=1
+    else
+        verdict="${C_BAD}$(msg state_partial "$set" "$total")${C_OFF}"; code=2
+    fi
+
+    printf '%s%s %s%s\n\n' "$C_HEAD" "$PROGRAM" "$VERSION" "$C_OFF"
+    printf '  %s: %s\n' "$(msg head_state)" "$verdict"
+
+    if [ "$total" -gt 0 ]; then
+        printf '\n  %s%s%s\n' "$C_HEAD" "$(msg head_steam)" "$C_OFF"
+        for kind in $list; do
+            state="$(target_state "$kind")"
+            case "$state" in
+                ours)
+                    if [ "$kind" = "native" ]; then shown="${C_OK}$(msg set_envd)${C_OFF}"
+                    else shown="${C_OK}$(msg set_override)${C_OFF}"; fi ;;
+                foreign) shown="${C_BAD}$(msg foreign)${C_OFF}" ;;
+                *)       shown="${C_WARN}$(msg not_set)${C_OFF}" ;;
+            esac
+            printf '    %-9s %s\n              %s\n' "$(msg "$kind")" "$shown" \
+                   "$(short_path "$(steam_dir "$kind")")"
+            if [ "$kind" = "flatpak" ] && override_unset_listed; then
+                printf '              %s%s%s\n' "$C_WARN" "$(msg unset_listed "$ENV_NAME")" "$C_OFF"
+            fi
+            if [ "$kind" = "native" ]; then
+                local shadow
+                shadow="$(shadowing_envd_file)"
+                [ -n "$shadow" ] && printf '              %s%s%s\n' "$C_WARN" \
+                    "$(msg shadowed "$shadow" "$ENV_NAME")" "$C_OFF"
+            fi
+        done
+    fi
+
+    printf '\n  %s%s%s\n' "$C_HEAD" "$(msg head_running)" "$C_OFF"
+    local procs pid has
+    procs="$(running_steam)"
+    if [ -z "$procs" ]; then
+        printf '    %s%s%s\n' "$C_DIM" "$(msg running_none)" "$C_OFF"
+    else
+        while read -r pid kind has; do
+            if [ "$has" = "yes" ]; then
+                printf '    %s%s%s\n' "$C_OK" "$(msg running_yes "$pid" "$(msg "$kind")")" "$C_OFF"
+            elif [ "$has" = "unknown" ]; then
+                printf '    %s%s%s\n' "$C_DIM" "$(msg running_unknown "$pid" "$(msg "$kind")")" "$C_OFF"
+            else
+                printf '    %s%s%s\n' "$C_WARN" "$(msg running_no "$pid" "$(msg "$kind")")" "$C_OFF"
+            fi
+        done <<< "$procs"
+    fi
+
+    if [ "$total" -gt 0 ]; then
+        printf '\n  %s%s%s\n' "$C_HEAD" "$(msg head_log)" "$C_OFF"
+        local line stamp
+        for kind in $list; do
+            line="$(last_logged_mapping "$(steam_dir "$kind")")"
+            stamp="$(printf '%s' "$line" | sed -n 's/^\[\([^]]*\)\].*/\1/p')"
+            if [ -z "$line" ]; then
+                printf '    %s%s%s\n' "$C_DIM" "$(msg log_none "$(msg "$kind")")" "$C_OFF"
+            elif [[ "$line" == *paddle1:* ]]; then
+                printf '    %s%s%s\n' "$C_OK" "$(msg log_paddles "$(msg "$kind")" "$stamp")" "$C_OFF"
+            else
+                printf '    %s%s%s\n' "$C_WARN" "$(msg log_nopaddles "$(msg "$kind")" "$stamp")" "$C_OFF"
+            fi
+        done
+    fi
+
+    printf '\n  %s%s%s\n' "$C_HEAD" "$(msg head_pads)" "$C_OFF"
+    local pads mode handler uniq count=0
+    pads="$(connected_pads)"
+    if [ -z "$pads" ]; then
+        printf '    %s%s%s\n' "$C_DIM" "$(msg pad_none)" "$C_OFF"
+    else
+        while read -r mode handler uniq; do
+            count=$((count + 1))
+            case "$mode" in
+                dinput) printf '    %s%s%s\n' "$C_OK" "$(msg pad_dinput "$handler")" "$C_OFF" ;;
+                xinput) printf '    %s%s%s\n' "$C_WARN" "$(msg pad_xinput "$handler")" "$C_OFF" ;;
+                bt)     printf '    %s\n' "$(msg pad_bt "$handler")" ;;
+            esac
+            printf '             %s%s %s%s\n' "$C_DIM" "$(msg serial)" "$uniq" "$C_OFF"
+        done <<< "$pads"
+        if [ "$count" -gt 1 ]; then
+            printf '    %s%s%s\n' "$C_DIM" "$(msg pads_count "$count")" "$C_OFF"
+        fi
+    fi
+    printf '\n'
+    return "$code"
+}
+
+cmd_on() {
+    local list kind
+    list="$(targets)"
+    [ -n "$list" ] || die "$(msg no_target)"
+    for kind in $list; do
+        "on_${kind}"
+    done
+    if [ "$DRY_RUN" -eq 0 ]; then
+        msg done_on "$PROGRAM"; printf '\n'
+    fi
+}
+
+cmd_off() {
+    local list kind
+    list="$(targets)"
+    [ -n "$list" ] || die "$(msg no_target)"
+    for kind in $list; do
+        "off_${kind}"
+    done
+    if [ "$DRY_RUN" -eq 0 ]; then
+        msg done_off "$PROGRAM"; printf '\n'
+    fi
+}
+
+usage() {
+    msg usage_title "$PROGRAM" "$VERSION"; printf '\n\n'
+    msg usage_usage "$PROGRAM"; printf '\n\n'
+    msg usage_commands; printf '\n'
+    msg usage_status; printf '\n'
+    msg usage_on "$ENV_NAME"; printf '\n'
+    msg usage_off "$PROGRAM"; printf '\n'
+    msg usage_mapping; printf '\n\n'
+    msg usage_options; printf '\n'
+    msg usage_target; printf '\n'
+    msg usage_dry; printf '\n'
+    msg usage_lang; printf '\n'
+    msg usage_help; printf '\n'
+    msg usage_version; printf '\n\n'
+    msg usage_exit; printf '\n'
+    msg usage_exit0; printf '\n'
+    msg usage_exit1; printf '\n'
+    msg usage_exit2; printf '\n\n'
+    msg usage_req; printf '\n'
+}
+
+main() {
+    local command=""
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -n|--dry-run) DRY_RUN=1 ;;
+            -t|--target)  shift; TARGET="${1:-}" ;;
+            --target=*)   TARGET="${1#--target=}" ;;
+            -l|--lang)    shift; LANGUAGE="$(detect_language "${1:-}")" ;;
+            --lang=*)     LANGUAGE="$(detect_language "${1#--lang=}")" ;;
+            -h|--help)    usage; return 0 ;;
+            -V|--version) printf '%s %s\n' "$PROGRAM" "$VERSION"; return 0 ;;
+            -*)           die "$(msg unknown_option "$1")" ;;
+            *)
+                [ -n "$command" ] && die "$(msg two_commands "$command" "$1")"
+                command="$1"
+                ;;
+        esac
+        shift
+    done
+
+    case "$TARGET" in
+        ""|native|flatpak|all) ;;
+        *) die "$(msg bad_target "$TARGET")" ;;
+    esac
+
+    case "${command:-status}" in
+        status)                cmd_status ;;
+        on|start|enable)       cmd_on ;;
+        off|stop|disable)      cmd_off ;;
+        mapping)               printf '%s\n' "$MAPPING" ;;
+        *) die "$(msg unknown_command "$command")" ;;
+    esac
+}
+
+main "$@"

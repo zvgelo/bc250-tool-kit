@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="580" viewBox="0 0 1200 580" role="img" aria-labelledby="title desc">
+<title id="title">Jak L4/R4 docierają do Steam Input</title>
+<desc id="desc">L4 i R4 przechodzą z pada przez odbiornik w trybie DInput, kernel i SDL w Steamie do Steam Input; Steam ignoruje config.vdf dla tego pada, paddle dodaje dopiero zmienna SDL_GAMECONTROLLERCONFIG ustawiana przez bc250-paddles.</desc>
+<rect width="1200" height="580" rx="18" fill="#0b0e12"/>
+<text x="56" y="78" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="40" font-weight="bold" fill="#e6e9ee" text-anchor="start">Jak L4/R4 docierają do Steam Input</text>
+<rect x="48" y="128" width="196" height="150" rx="6" fill="#11161c" stroke="#2a3f6e" stroke-width="2"/>
+<rect x="66" y="114" width="57" height="28" fill="#0b0e12"/>
+<text x="76" y="135" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="bold" fill="#46c6d8" text-anchor="start">pad</text>
+<text x="146.0" y="194" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="28" font-weight="bold" fill="#e6e9ee" text-anchor="middle">L4</text>
+<text x="146.0" y="238" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="28" font-weight="bold" fill="#e6e9ee" text-anchor="middle">R4</text>
+<path d="M248 203.0 h19" stroke="#8a94a3" stroke-width="3"/>
+<path d="M271 203.0 l-10 -7 v14 z" fill="#8a94a3"/>
+<rect x="275" y="128" width="196" height="150" rx="6" fill="#11161c" stroke="#2a3f6e" stroke-width="2"/>
+<rect x="293" y="114" width="132" height="28" fill="#0b0e12"/>
+<text x="303" y="135" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="bold" fill="#46c6d8" text-anchor="start">odbiornik</text>
+<text x="373.0" y="194" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="28" font-weight="bold" fill="#e6e9ee" text-anchor="middle">DInput</text>
+<text x="373.0" y="238" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="28" font-weight="bold" fill="#e6e9ee" text-anchor="middle">2dc8:301c</text>
+<path d="M475 203.0 h19" stroke="#8a94a3" stroke-width="3"/>
+<path d="M498 203.0 l-10 -7 v14 z" fill="#8a94a3"/>
+<rect x="502" y="128" width="196" height="150" rx="6" fill="#11161c" stroke="#2a3f6e" stroke-width="2"/>
+<rect x="520" y="114" width="94" height="28" fill="#0b0e12"/>
+<text x="530" y="135" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="bold" fill="#46c6d8" text-anchor="start">kernel</text>
+<text x="600.0" y="194" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="28" font-weight="bold" fill="#e6e9ee" text-anchor="middle">BTN_C</text>
+<text x="600.0" y="238" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="28" font-weight="bold" fill="#e6e9ee" text-anchor="middle">BTN_Z</text>
+<path d="M702 203.0 h19" stroke="#8a94a3" stroke-width="3"/>
+<path d="M725 203.0 l-10 -7 v14 z" fill="#8a94a3"/>
+<rect x="729" y="128" width="196" height="150" rx="6" fill="#11161c" stroke="#2a3f6e" stroke-width="2"/>
+<rect x="747" y="114" width="181" height="28" fill="#0b0e12"/>
+<text x="757" y="135" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="bold" fill="#46c6d8" text-anchor="start">SDL w Steamie</text>
+<text x="827.0" y="194" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="bold" fill="#e6e9ee" text-anchor="middle">b2 → paddle2</text>
+<text x="827.0" y="238" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="bold" fill="#e6e9ee" text-anchor="middle">b5 → paddle1</text>
+<path d="M929 203.0 h19" stroke="#8a94a3" stroke-width="3"/>
+<path d="M952 203.0 l-10 -7 v14 z" fill="#8a94a3"/>
+<rect x="956" y="128" width="196" height="150" rx="6" fill="#11161c" stroke="#5cc96a" stroke-width="2"/>
+<rect x="974" y="114" width="156" height="28" fill="#0b0e12"/>
+<text x="984" y="135" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="bold" fill="#5cc96a" text-anchor="start">Steam Input</text>
+<text x="1054.0" y="194" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="28" font-weight="bold" fill="#e6e9ee" text-anchor="middle">L5</text>
+<text x="1054.0" y="238" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="28" font-weight="bold" fill="#e6e9ee" text-anchor="middle">R5</text>
+<text x="56" y="344" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">skąd Steam bierze mapowanie</text>
+<rect x="56" y="368" width="590" height="76" rx="8" fill="#11161c" stroke="#e05a5a" stroke-width="2"/>
+<text x="80" y="417" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="32" font-weight="bold" fill="#e05a5a" text-anchor="start">✗</text>
+<text x="124" y="400" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="bold" fill="#e6e9ee" text-anchor="start">config.vdf  SDL_GamepadBind</text>
+<text x="124" y="428" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#e05a5a" text-anchor="start">ignorowany, nadpisywany</text>
+<rect x="56" y="460" width="590" height="76" rx="8" fill="#11161c" stroke="#5cc96a" stroke-width="2"/>
+<text x="80" y="509" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="32" font-weight="bold" fill="#5cc96a" text-anchor="start">✓</text>
+<text x="124" y="492" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="bold" fill="#e6e9ee" text-anchor="start">SDL_GAMECONTROLLERCONFIG</text>
+<text x="124" y="520" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#5cc96a" text-anchor="start">ustawia bc250-paddles on</text>
+<path d="M646 498 H827.0 V288" fill="none" stroke="#5cc96a" stroke-width="3"/>
+<path d="M827.0 280 l-8 12 h16 z" fill="#5cc96a"/>
+<path d="M646 406 H787.0" fill="none" stroke="#e05a5a" stroke-width="3" stroke-dasharray="8 8"/>
+<text x="799.0" y="414" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="26" font-weight="bold" fill="#e05a5a" text-anchor="middle">✗</text>
+</svg>

@@ -1,0 +1,190 @@
+.TH BC250\-PADDLES 1 "2026-10-24" "bc250-paddles 0.1.0" "Podręcznik użytkownika"
+.SH NAZWA
+bc250\-paddles \- L4/R4 padów 8BitDo Ultimate 2C jako tylne przyciski w Steam przez odbiornik 2,4 GHz
+.SH SKŁADNIA
+.B bc250\-paddles
+.RI [ KOMENDA ]
+.RI [ OPCJE ]
+.SH OPIS
+.B bc250\-paddles
+ustawia i usuwa mapowanie SDL w zmiennej środowiskowej
+.B SDL_GAMECONTROLLERCONFIG
+Steama. Dzięki niemu Steam Input widzi L4 i R4 pada 8BitDo Ultimate 2C Wireless
+na odbiorniku 2,4 GHz jako dwa niezależne tylne przyciski (paddle2 i paddle1,
+w teście kontrolera L5 i R5).
+.PP
+Odbiornik wysyła L4/R4 tylko w trybie DInput, gdy zgłasza się jako USB
+.I 2dc8:301c
+z urządzeniem wejściowym. Steam buduje wtedy automatyczne mapowanie bez nich.
+Wpis
+.I SDL_GamepadBind
+w
+.I config.vdf
+ignoruje, a potem nadpisuje. Mapowanie ze zmiennej środowiskowej stosuje.
+.PP
+Jedno mapowanie obejmuje dowolną liczbę padów, bo każdy zestaw pad + odbiornik
+przedstawia się tak samo.
+.SH WARUNKI
+.IP \(bu 2
+Pad na swoim odbiorniku 2,4 GHz, nie na kablu i nie przez Bluetooth.
+.IP \(bu 2
+Firmware pozwalający na tryb DInput. Sprawdzone: pad 1.06 i odbiornik 1.00.
+Przy padzie 1.09 i odbiorniku 1.03 przełączenie w DInput nie działa.
+.IP \(bu 2
+Pad w trybie DInput (Home + B; powrót do XInput: Home + X).
+.IP \(bu 2
+L4/R4 nieprzypisane w samym padzie.
+.IP \(bu 2
+Steam uruchomiony po
+.BR on .
+Steam natywny w Gaming Mode: po wylogowaniu albo restarcie.
+.PP
+W trybie DInput pad nie wibruje. Kernel nie udostępnia dla niego force
+feedback, a firmware ignoruje raport wyjściowy.
+.SH KOMENDY
+.TP
+.B status
+Dla każdej wykrytej instalacji Steama pokazuje:
+czy mapowanie jest ustawione;
+czy działający Steam ma je w środowisku;
+które mapowanie dla
+.I 2dc8/301c
+zgłasza ostatnio
+.I logs/controller.txt
+Steama;
+pady 8BitDo z trybem i numerem seryjnym odbiornika.
+Komenda domyślna.
+.TP
+.B on
+Ustawia mapowanie.
+.RS
+.IP \(bu 2
+Steam natywny: zapisuje
+.I ~/.config/environment.d/90\-bc250\-paddles.conf
+i wywołuje
+.BR "systemctl \-\-user set\-environment" .
+.IP \(bu 2
+Steam z Flatpaka: dodaje zmienną do override'u użytkownika
+.IR com.valvesoftware.Steam .
+Jeśli wcześniejszy override wpisał ją na listę
+.IR unset\-environment ,
+usuwa ją stamtąd.
+.RE
+.IP
+Cudzej, innej wartości nie nadpisuje.
+.TP
+.B off
+Usuwa tylko to, co ustawiło
+.BR on .
+Inne override'y Flatpaka i cudze wartości zostają.
+.TP
+.B mapping
+Wypisuje samo mapowanie SDL.
+.SH OPCJE
+.TP
+.BR \-t ", " \-\-target " \fInative\fR|\fIflatpak\fR|\fIall\fR"
+Instalacja, której dotyczy komenda. Domyślnie: wykryte.
+.TP
+.BR \-n ", " \-\-dry\-run
+Wypisuje, co zostałoby zrobione, bez zmian.
+.TP
+.BR \-l ", " \-\-lang " \fIpl\fR|\fIen\fR"
+Język komunikatów. Bez tej opcji brany ze zmiennej
+.BR BC250_LANG ,
+a dalej z locale systemu; nierozpoznane ustawienie oznacza angielski.
+.TP
+.BR \-h ", " \-\-help
+Skrócony opis komend i opcji.
+.TP
+.BR \-V ", " \-\-version
+Wersja.
+.SH KODY WYJŚCIA
+Komenda
+.B status
+zwraca:
+.TP
+.B 0
+Mapowanie ustawione we wszystkich wykrytych instalacjach.
+.TP
+.B 1
+Mapowanie nieustawione albo brak Steama.
+.TP
+.B 2
+Mapowanie ustawione tylko w części instalacji.
+.PP
+Pozostałe komendy zwracają 0 przy powodzeniu i 1 przy błędzie.
+.SH UPRAWNIENIA
+Żadne. Wszystkie zmiany leżą w katalogu domowym i przeżywają aktualizacje
+obrazu na dystrybucjach atomowych, takich jak Bazzite.
+.SH ŚRODOWISKO
+.TP
+.B BC250_LANG
+Język komunikatów
+.RI ( pl
+albo
+.IR en ),
+gdy nie podano
+.BR \-\-lang .
+.TP
+.BR XDG_CONFIG_HOME ", " FLATPAK_USER_DIR
+Uwzględniane przy położeniu
+.I environment.d
+i override'ów Flatpaka.
+.SH PLIKI
+.TP
+.I ~/.config/environment.d/90\-bc250\-paddles.conf
+Zmienna dla natywnego Steama.
+.TP
+.I ~/.local/share/flatpak/overrides/com.valvesoftware.Steam
+Override użytkownika Flatpaka niosący zmienną.
+.TP
+.I ~/.local/share/Steam/logs/controller.txt
+Log kontrolerów Steama, czytany przez
+.B status
+(Flatpak:
+.IR ~/.var/app/com.valvesoftware.Steam/.local/share/Steam/logs/controller.txt ).
+.SH PRZYKŁADY
+Ustawienie mapowania i sprawdzenie po ponownym uruchomieniu Steama:
+.PP
+.RS
+.EX
+bc250\-paddles on
+bc250\-paddles status
+.EE
+.RE
+.PP
+Tylko dla Steama z Flatpaka, najpierw podgląd:
+.PP
+.RS
+.EX
+bc250\-paddles on \-\-target flatpak \-\-dry\-run
+.EE
+.RE
+.PP
+Ręczne cofnięcie:
+.PP
+.RS
+.EX
+rm ~/.config/environment.d/90\-bc250\-paddles.conf
+systemctl \-\-user unset\-environment SDL_GAMECONTROLLERCONFIG
+.EE
+.RE
+.SH UWAGI
+Ręczne poprawki
+.I SDL_GamepadBind
+w
+.I config.vdf
+nie działają dla tego urządzenia. Steam zastępuje je przy wyjściu swoim
+mapowaniem automatycznym.
+.PP
+W trybie XInput
+.RI ( 2dc8:310a )
+odbiornik w ogóle nie wysyła L4/R4. Żadne mapowanie tu nie pomoże.
+.SH ZOBACZ TAKŻE
+.BR environment.d (5),
+.BR flatpak\-override (1),
+.BR bc250\-wcm (1)
+.SH BŁĘDY
+Zgłoszenia:
+.UR https://github.com/zvgelo/bc250-tool-kit/issues
+.UE

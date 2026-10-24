@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650" role="img" aria-labelledby="title desc">
+<title id="title">What the 2.4 GHz receiver sends</title>
+<desc id="desc">Four ways the pad can show up: receiver idle, XInput, DInput and Bluetooth, with what each gives for L4/R4, rumble and Steam.</desc>
+<rect width="1200" height="650" rx="18" fill="#0b0e12"/>
+<text x="56" y="78" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="40" font-weight="bold" fill="#e6e9ee" text-anchor="start">What the 2.4 GHz receiver sends</text>
+<rect x="48" y="130" width="264" height="404" rx="6" fill="#11161c" stroke="#2a3f6e" stroke-width="2"/>
+<rect x="66" y="116" width="80" height="28" fill="#0b0e12"/>
+<text x="76" y="137" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="24" font-weight="bold" fill="#8a94a3" text-anchor="start">IDLE</text>
+<text x="70" y="176" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">no pad linked</text>
+<text x="70" y="226" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">USB</text>
+<text x="70" y="254" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">2dc8:301c</text>
+<text x="70" y="288" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">input device</text>
+<text x="70" y="316" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">none</text>
+<text x="70" y="350" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">L4 / R4</text>
+<text x="70" y="378" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">—</text>
+<text x="70" y="412" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">rumble</text>
+<text x="70" y="440" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">—</text>
+<text x="70" y="474" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">Steam back buttons</text>
+<text x="70" y="502" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">—</text>
+<rect x="328" y="130" width="264" height="404" rx="6" fill="#11161c" stroke="#2a3f6e" stroke-width="2"/>
+<rect x="346" y="116" width="109" height="28" fill="#0b0e12"/>
+<text x="356" y="137" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="24" font-weight="bold" fill="#e0a040" text-anchor="start">XInput</text>
+<text x="350" y="176" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">Home + X</text>
+<text x="350" y="226" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">USB</text>
+<text x="350" y="254" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#e6e9ee" text-anchor="start">2dc8:310a</text>
+<text x="350" y="288" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">driver</text>
+<text x="350" y="316" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#e6e9ee" text-anchor="start">xpad</text>
+<text x="350" y="350" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">L4 / R4</text>
+<text x="350" y="378" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#e05a5a" text-anchor="start">✗ not sent</text>
+<text x="350" y="412" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">rumble</text>
+<text x="350" y="440" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#5cc96a" text-anchor="start">✓</text>
+<text x="350" y="474" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">Steam back buttons</text>
+<text x="350" y="502" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#e05a5a" text-anchor="start">✗ impossible</text>
+<rect x="608" y="130" width="264" height="404" rx="6" fill="#11161c" stroke="#5cc96a" stroke-width="2"/>
+<rect x="626" y="116" width="109" height="28" fill="#0b0e12"/>
+<text x="636" y="137" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="24" font-weight="bold" fill="#5cc96a" text-anchor="start">DInput</text>
+<text x="630" y="176" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">Home + B</text>
+<text x="630" y="226" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">USB</text>
+<text x="630" y="254" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#e6e9ee" text-anchor="start">2dc8:301c</text>
+<text x="630" y="288" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">driver</text>
+<text x="630" y="316" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#e6e9ee" text-anchor="start">hid-generic</text>
+<text x="630" y="350" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">L4 / R4</text>
+<text x="630" y="378" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#5cc96a" text-anchor="start">✓ BTN_C / BTN_Z</text>
+<text x="630" y="412" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">rumble</text>
+<text x="630" y="440" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#e05a5a" text-anchor="start">✗</text>
+<text x="630" y="474" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">Steam back buttons</text>
+<text x="630" y="502" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#5cc96a" text-anchor="start">✓ bc250-paddles on</text>
+<rect x="742" y="115" width="118" height="30" rx="15" fill="#5cc96a" stroke="#0b0e12" stroke-width="4"/>
+<text x="801.0" y="136" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="bold" fill="#0b0e12" text-anchor="middle">this tool</text>
+<rect x="888" y="130" width="264" height="404" rx="6" fill="#11161c" stroke="#2a3f6e" stroke-width="2"/>
+<rect x="906" y="116" width="154" height="28" fill="#0b0e12"/>
+<text x="916" y="137" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="24" font-weight="bold" fill="#46c6d8" text-anchor="start">Bluetooth</text>
+<text x="910" y="176" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">reference</text>
+<text x="910" y="226" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">USB</text>
+<text x="910" y="254" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#e6e9ee" text-anchor="start">— (BT 2dc8:301b)</text>
+<text x="910" y="288" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">driver</text>
+<text x="910" y="316" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#e6e9ee" text-anchor="start">hid-generic</text>
+<text x="910" y="350" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">L4 / R4</text>
+<text x="910" y="378" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#5cc96a" text-anchor="start">✓ BTN_C / BTN_Z</text>
+<text x="910" y="412" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">rumble</text>
+<text x="910" y="440" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#5cc96a" text-anchor="start">✓</text>
+<text x="910" y="474" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">Steam back buttons</text>
+<text x="910" y="502" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#5cc96a" text-anchor="start">✓ built in</text>
+<text x="56" y="584" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="20" font-weight="normal" fill="#e0a040" text-anchor="start">DInput needs pad 1.06 + receiver 1.00 — on 1.09 + 1.03 the switch does not happen.</text>
+<text x="56" y="618" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">301c without an input device is IDLE; bc250-paddles status tells them apart.</text>
+</svg>
