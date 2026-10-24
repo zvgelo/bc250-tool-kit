@@ -1,0 +1,468 @@
+#!/usr/bin/env bash
+#
+# bc250-nosuspend — a persistent block on system suspend and hibernation.
+#
+# It blocks at the systemd level rather than in desktop settings: it masks the
+# sleep/suspend/hibernate targets and sets logind IdleAction=ignore. That way it
+# works the same in KDE, in Gaming Mode and on a machine with no display.
+
+set -euo pipefail
+
+readonly PROGRAM="bc250-nosuspend"
+readonly VERSION="0.1.0"
+
+# The systemd targets responsible for suspending. Masking makes every suspend
+# attempt — from the desktop, the keyboard or systemctl — fail.
+readonly TARGETS=(
+    sleep.target
+    suspend.target
+    hibernate.target
+    hybrid-sleep.target
+    suspend-then-hibernate.target
+)
+
+# Test hook-in points (SYSTEMCTL, BUSCTL, ETC, STATE, ASSUME_ROOT).
+# They are not set by hand in normal use.
+SYSTEMCTL="${BC250_NOSUSPEND_SYSTEMCTL:-systemctl}"
+BUSCTL="${BC250_NOSUSPEND_BUSCTL:-busctl}"
+ETC_DIR="${BC250_NOSUSPEND_ETC:-/etc}"
+STATE_DIR="${BC250_NOSUSPEND_STATE:-/var/lib/bc250-nosuspend}"
+
+readonly DROPIN_DIR="${ETC_DIR}/systemd/logind.conf.d"
+readonly DROPIN_FILE="${DROPIN_DIR}/10-${PROGRAM}.conf"
+readonly STATE_FILE="${STATE_DIR}/previous-mask-state"
+
+DRY_RUN=0
+ORIGINAL_ARGS=("$@")
+
+# --------------------------------------------------------------------------
+# Translations
+# --------------------------------------------------------------------------
+
+declare -A MSG_PL=(
+    [need_root_nosudo]="wymagane uprawnienia roota, a nie ma sudo"
+    [need_root_sudo]="%s: wymagane uprawnienia roota — ponawiam przez sudo"
+    [reload_failed]="%s: nie udało się przeładować systemd-logind — ustawienie IdleAction zadziała po ponownym zalogowaniu"
+    [state_blocked]="SUSPEND ZABLOKOWANY"
+    [state_possible]="usypianie możliwe"
+    [state_partial]="blokada częściowa (%s/%s)"
+    [head_state]="Stan"
+    [head_targets]="Cele systemd"
+    [head_logind]="logind"
+    [head_other]="Inne"
+    [target_masked]="zamaskowany"
+    [target_unmasked]="— usypianie możliwe"
+    [idle_ignore]="ignore — bezczynność nie usypia"
+    [idle_other]="%s — bezczynność wywoła tę akcję"
+    [dropin]="drop-in %s"
+    [dropin_present]="obecny"
+    [dropin_absent]="brak"
+    [inhibitors]="aktywne inhibitory"
+    [owned_hint]="Blokadę założył %s — cofniesz ją komendą: %s stop"
+    [already_active]="%s: blokada już aktywna — nic do zrobienia"
+    [started]="%s: suspend i hibernacja zablokowane"
+    [kept_mask]="%s: %s był zamaskowany przed założeniem blokady — zostawiam"
+    [stopped]="%s: blokada zdjęta (odmaskowano celów: %s)"
+    [defaulted]="%s: przywrócono domyślne zachowanie systemu (usypianie włączone)"
+    [save_state]="  + zapis stanu sprzed zmiany do %s"
+    [write_dropin]="  + zapis %s (IdleAction=ignore)"
+    [unknown_option]="nieznana opcja '%s' (zobacz --help)"
+    [unknown_command]="nieznana komenda '%s' (zobacz --help)"
+    [two_commands]="podano dwie komendy: '%s' i '%s'"
+    [usage_title]="%s %s — trwała blokada usypiania systemu"
+    [usage_usage]="Użycie: %s <komenda> [opcje]"
+    [usage_commands]="Komendy:"
+    [usage_status]="  status      pokazuje, czy usypianie jest zablokowane i przez co"
+    [usage_start]="  start       blokuje suspend i hibernację (trwale, także po restarcie)"
+    [usage_stop]="  stop        zdejmuje blokadę założoną przez %s"
+    [usage_default]="  default     przywraca domyślne zachowanie systemu niezależnie od stanu"
+    [usage_options]="Opcje:"
+    [usage_dry]="  -n, --dry-run   pokazuje, co zostałoby zrobione, bez wprowadzania zmian"
+    [usage_lang]="  -l, --lang JĘZ  język komunikatów: pl, en (domyślnie z locale)"
+    [usage_help]="  -h, --help      ta pomoc"
+    [usage_version]="  -V, --version   wersja"
+    [usage_exit]="Kody wyjścia komendy status:"
+    [usage_exit0]="  0  usypianie zablokowane"
+    [usage_exit1]="  1  usypianie możliwe"
+    [usage_exit2]="  2  blokada częściowa"
+    [usage_root]="start, stop i default wymagają uprawnień roota — narzędzie samo ponawia wywołanie przez sudo."
+)
+
+declare -A MSG_EN=(
+    [need_root_nosudo]="root privileges required, and sudo is not available"
+    [need_root_sudo]="%s: root privileges required — retrying through sudo"
+    [reload_failed]="%s: could not reload systemd-logind — the IdleAction setting will take effect after the next login"
+    [state_blocked]="SUSPEND BLOCKED"
+    [state_possible]="suspend possible"
+    [state_partial]="partial block (%s/%s)"
+    [head_state]="State"
+    [head_targets]="systemd targets"
+    [head_logind]="logind"
+    [head_other]="Other"
+    [target_masked]="masked"
+    [target_unmasked]="— suspend possible"
+    [idle_ignore]="ignore — idling will not suspend"
+    [idle_other]="%s — idling will trigger this action"
+    [dropin]="%s drop-in"
+    [dropin_present]="present"
+    [dropin_absent]="absent"
+    [inhibitors]="active inhibitors"
+    [owned_hint]="The block was set by %s — remove it with: %s stop"
+    [already_active]="%s: the block is already active — nothing to do"
+    [started]="%s: suspend and hibernation blocked"
+    [kept_mask]="%s: %s was masked before the block was set — leaving it alone"
+    [stopped]="%s: block removed (targets unmasked: %s)"
+    [defaulted]="%s: system defaults restored (suspend enabled)"
+    [save_state]="  + saving the pre-change state to %s"
+    [write_dropin]="  + writing %s (IdleAction=ignore)"
+    [unknown_option]="unknown option '%s' (see --help)"
+    [unknown_command]="unknown command '%s' (see --help)"
+    [two_commands]="two commands given: '%s' and '%s'"
+    [usage_title]="%s %s — persistent block on system suspend"
+    [usage_usage]="Usage: %s <command> [options]"
+    [usage_commands]="Commands:"
+    [usage_status]="  status      show whether suspend is blocked, and by what"
+    [usage_start]="  start       block suspend and hibernation (persistently, across reboots)"
+    [usage_stop]="  stop        remove the block set by %s"
+    [usage_default]="  default     restore system defaults regardless of the current state"
+    [usage_options]="Options:"
+    [usage_dry]="  -n, --dry-run   show what would be done, without making changes"
+    [usage_lang]="  -l, --lang LANG message language: pl, en (defaults to the locale)"
+    [usage_help]="  -h, --help      this help"
+    [usage_version]="  -V, --version   version"
+    [usage_exit]="Exit codes of the status command:"
+    [usage_exit0]="  0  suspend blocked"
+    [usage_exit1]="  1  suspend possible"
+    [usage_exit2]="  2  partially blocked"
+    [usage_root]="start, stop and default need root — the tool retries through sudo on its own."
+)
+
+# Order: --lang, BC250_LANG, the system locale, then English.
+detect_language() {
+    local candidate code
+    for candidate in "${1:-}" "${BC250_LANG:-}" "${LC_ALL:-}" "${LC_MESSAGES:-}" "${LANG:-}"; do
+        [ -n "$candidate" ] || continue
+        code="${candidate%%.*}"
+        code="${code%%_*}"
+        case "$code" in
+            pl|en) printf '%s' "$code"; return 0 ;;
+        esac
+    done
+    printf 'en'
+}
+
+LANGUAGE="$(detect_language "")"
+
+msg() {
+    local key="$1"; shift
+    local template
+    if [ "$LANGUAGE" = "pl" ]; then
+        template="${MSG_PL[$key]-$key}"
+    else
+        template="${MSG_EN[$key]-$key}"
+    fi
+    # shellcheck disable=SC2059 -- the template comes from our own catalogue
+    printf "$template" "$@"
+}
+
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+    C_OK=$'\033[32m'; C_WARN=$'\033[33m'; C_BAD=$'\033[31m'
+    C_DIM=$'\033[2m'; C_HEAD=$'\033[1m'; C_OFF=$'\033[0m'
+else
+    C_OK=""; C_WARN=""; C_BAD=""; C_DIM=""; C_HEAD=""; C_OFF=""
+fi
+
+die() { printf '%s: %s\n' "$PROGRAM" "$*" >&2; exit 1; }
+note() { printf '%s\n' "$*" >&2; }
+
+# ---------------------------------------------------------------------------
+# Reading state
+# ---------------------------------------------------------------------------
+
+# systemctl is-enabled exits non-zero for masked and static units, so only its
+# output text is of interest.
+unit_state() {
+    "$SYSTEMCTL" is-enabled "$1" 2>/dev/null || true
+}
+
+target_masked() {
+    [ "$(unit_state "$1")" = "masked" ]
+}
+
+count_masked() {
+    local target count=0
+    for target in "${TARGETS[@]}"; do
+        target_masked "$target" && count=$((count + 1))
+    done
+    printf '%d' "$count"
+}
+
+idle_action() {
+    local raw
+    raw="$("$BUSCTL" get-property org.freedesktop.login1 /org/freedesktop/login1 \
+           org.freedesktop.login1.Manager IdleAction 2>/dev/null || true)"
+    raw="${raw#s }"          # busctl zwraca: s "ignore"
+    raw="${raw%\"}"
+    raw="${raw#\"}"
+    printf '%s' "${raw:-nieznane}"
+}
+
+dropin_present() {
+    [ -f "$DROPIN_FILE" ]
+}
+
+inhibitor_count() {
+    local out
+    out="$("$SYSTEMCTL" --version >/dev/null 2>&1 && systemd-inhibit --list 2>/dev/null || true)"
+    printf '%s' "$(printf '%s' "$out" | sed -n 's/^\([0-9]\+\) inhibitors listed.*/\1/p')"
+}
+
+# ---------------------------------------------------------------------------
+# Changing state
+# ---------------------------------------------------------------------------
+
+require_root() {
+    [ "$(id -u)" -eq 0 ] && return 0
+    # for tests only — the system enforces privileges at systemctl anyway
+    [ -n "${BC250_NOSUSPEND_ASSUME_ROOT:-}" ] && return 0
+    if [ "$DRY_RUN" -eq 1 ]; then
+        return 0
+    fi
+    command -v sudo >/dev/null 2>&1 || die "$(msg need_root_nosudo)"
+    note "$(msg need_root_sudo "$PROGRAM")"
+    exec sudo -- "$(realpath "$0")" "${ORIGINAL_ARGS[@]}"
+}
+
+run_cmd() {
+    if [ "$DRY_RUN" -eq 1 ]; then
+        printf '%s  + %s%s\n' "$C_DIM" "$*" "$C_OFF"
+        return 0
+    fi
+    "$@"
+}
+
+# Records which targets were already masked before us, so that "stop" reverses
+# exactly our own changes instead of unmasking somebody else's.
+save_previous_state() {
+    if [ -f "$STATE_FILE" ]; then
+        return 0    # the block is already in place; the original state is saved
+    fi
+    local target line=""
+    for target in "${TARGETS[@]}"; do
+        if target_masked "$target"; then
+            line+="${target}"$'\n'
+        fi
+    done
+
+    if [ "$DRY_RUN" -eq 1 ]; then
+        printf '%s%s%s\n' "$C_DIM" "$(msg save_state "$STATE_FILE")" "$C_OFF"
+        return 0
+    fi
+    mkdir -p "$STATE_DIR"
+    printf '%s' "$line" > "$STATE_FILE"
+}
+
+was_masked_before() {
+    [ -f "$STATE_FILE" ] && grep -qxF "$1" "$STATE_FILE"
+}
+
+write_dropin() {
+    if [ "$DRY_RUN" -eq 1 ]; then
+        printf '%s%s%s\n' "$C_DIM" "$(msg write_dropin "$DROPIN_FILE")" "$C_OFF"
+        return 0
+    fi
+    mkdir -p "$DROPIN_DIR"
+    cat > "$DROPIN_FILE" <<EOF
+# Created by ${PROGRAM} ${VERSION}.
+# Removed by: ${PROGRAM} stop  or  ${PROGRAM} default
+[Login]
+IdleAction=ignore
+EOF
+}
+
+reload_logind() {
+    if ! run_cmd "$SYSTEMCTL" reload systemd-logind 2>/dev/null; then
+        note "$(msg reload_failed "$PROGRAM")"
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
+
+cmd_status() {
+    local masked total verdict code
+    masked="$(count_masked)"
+    total="${#TARGETS[@]}"
+
+    if [ "$masked" -eq "$total" ]; then
+        verdict="${C_OK}$(msg state_blocked)${C_OFF}"; code=0
+    elif [ "$masked" -eq 0 ]; then
+        verdict="${C_WARN}$(msg state_possible)${C_OFF}"; code=1
+    else
+        verdict="${C_BAD}$(msg state_partial "$masked" "$total")${C_OFF}"; code=2
+    fi
+
+    printf '%s%s %s%s\n\n' "$C_HEAD" "$PROGRAM" "$VERSION" "$C_OFF"
+    printf '  %s: %s\n\n' "$(msg head_state)" "$verdict"
+
+    printf '  %s%s%s\n' "$C_HEAD" "$(msg head_targets)" "$C_OFF"
+    local target state shown
+    for target in "${TARGETS[@]}"; do
+        state="$(unit_state "$target")"
+        if [ "$state" = "masked" ]; then
+            shown="${C_OK}$(msg target_masked)${C_OFF}"
+        else
+            shown="${C_WARN}${state:-?}${C_OFF} $(msg target_unmasked)"
+        fi
+        printf '    %-32s %b\n' "$target" "$shown"
+    done
+
+    printf '\n  %s%s%s\n' "$C_HEAD" "$(msg head_logind)" "$C_OFF"
+    local action
+    action="$(idle_action)"
+    if [ "$action" = "ignore" ]; then
+        printf '    %-32s %b%s%b\n' "IdleAction" "$C_OK" "$(msg idle_ignore)" "$C_OFF"
+    else
+        printf '    %-32s %b%s%b\n' "IdleAction" "$C_WARN" "$(msg idle_other "$action")" "$C_OFF"
+    fi
+    if dropin_present; then
+        printf '    %-32s %b%s%b  %s\n' "$(msg dropin "$PROGRAM")" "$C_OK" \
+               "$(msg dropin_present)" "$C_OFF" "$DROPIN_FILE"
+    else
+        printf '    %-32s %b%s%b\n' "$(msg dropin "$PROGRAM")" "$C_DIM" \
+               "$(msg dropin_absent)" "$C_OFF"
+    fi
+
+    local inhibitors
+    inhibitors="$(inhibitor_count)"
+    if [ -n "$inhibitors" ]; then
+        printf '\n  %s%s%s\n' "$C_HEAD" "$(msg head_other)" "$C_OFF"
+        printf '    %-32s %s  %s(systemd-inhibit --list)%s\n' \
+               "$(msg inhibitors)" "$inhibitors" "$C_DIM" "$C_OFF"
+    fi
+
+    if [ -f "$STATE_FILE" ]; then
+        printf '\n  %s%s%s\n' "$C_DIM" "$(msg owned_hint "$PROGRAM" "$PROGRAM")" "$C_OFF"
+    fi
+    printf '\n'
+    return "$code"
+}
+
+cmd_start() {
+    require_root
+
+    if [ "$(count_masked)" -eq "${#TARGETS[@]}" ] && dropin_present; then
+        msg already_active "$PROGRAM"; printf '\n'
+        return 0
+    fi
+
+    save_previous_state
+
+    local target
+    for target in "${TARGETS[@]}"; do
+        target_masked "$target" && continue
+        run_cmd "$SYSTEMCTL" mask "$target"
+    done
+
+    write_dropin
+    reload_logind
+
+    if [ "$DRY_RUN" -eq 0 ]; then
+        msg started "$PROGRAM"; printf '\n'
+    fi
+}
+
+cmd_stop() {
+    require_root
+
+    local target restored=0
+    for target in "${TARGETS[@]}"; do
+        target_masked "$target" || continue
+        # a target masked before we arrived is left untouched
+        if was_masked_before "$target"; then
+            note "$(msg kept_mask "$PROGRAM" "$target")"
+            continue
+        fi
+        run_cmd "$SYSTEMCTL" unmask "$target"
+        restored=$((restored + 1))
+    done
+
+    if dropin_present; then
+        run_cmd rm -f "$DROPIN_FILE"
+    fi
+    [ -f "$STATE_FILE" ] && run_cmd rm -f "$STATE_FILE"
+
+    reload_logind
+
+    if [ "$DRY_RUN" -eq 0 ]; then
+        msg stopped "$PROGRAM" "$restored"; printf '\n'
+    fi
+}
+
+cmd_default() {
+    require_root
+
+    local target
+    for target in "${TARGETS[@]}"; do
+        target_masked "$target" && run_cmd "$SYSTEMCTL" unmask "$target"
+    done
+
+    dropin_present && run_cmd rm -f "$DROPIN_FILE"
+    [ -f "$STATE_FILE" ] && run_cmd rm -f "$STATE_FILE"
+
+    reload_logind
+
+    if [ "$DRY_RUN" -eq 0 ]; then
+        msg defaulted "$PROGRAM"; printf '\n'
+    fi
+}
+
+usage() {
+    msg usage_title "$PROGRAM" "$VERSION"; printf '\n\n'
+    msg usage_usage "$PROGRAM"; printf '\n\n'
+    msg usage_commands; printf '\n'
+    msg usage_status; printf '\n'
+    msg usage_start; printf '\n'
+    msg usage_stop "$PROGRAM"; printf '\n'
+    msg usage_default; printf '\n\n'
+    msg usage_options; printf '\n'
+    msg usage_dry; printf '\n'
+    msg usage_lang; printf '\n'
+    msg usage_help; printf '\n'
+    msg usage_version; printf '\n\n'
+    msg usage_exit; printf '\n'
+    msg usage_exit0; printf '\n'
+    msg usage_exit1; printf '\n'
+    msg usage_exit2; printf '\n\n'
+    msg usage_root; printf '\n'
+}
+
+main() {
+    local command=""
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -n|--dry-run) DRY_RUN=1 ;;
+            -l|--lang)    shift; LANGUAGE="$(detect_language "${1:-}")" ;;
+            --lang=*)     LANGUAGE="$(detect_language "${1#--lang=}")" ;;
+            -h|--help)    usage; return 0 ;;
+            -V|--version) printf '%s %s\n' "$PROGRAM" "$VERSION"; return 0 ;;
+            -*)           die "$(msg unknown_option "$1")" ;;
+            *)
+                [ -n "$command" ] && die "$(msg two_commands "$command" "$1")"
+                command="$1"
+                ;;
+        esac
+        shift
+    done
+
+    case "${command:-status}" in
+        status)  cmd_status ;;
+        start|on|disable)   cmd_start ;;
+        stop|off|enable)    cmd_stop ;;
+        default|reset)      cmd_default ;;
+        *) die "$(msg unknown_command "$command")" ;;
+    esac
+}
+
+main "$@"

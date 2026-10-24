@@ -1,0 +1,172 @@
+.TH BC250\-NOSUSPEND 1 "2026-09-07" "bc250-nosuspend 0.1.0" "User Manual"
+.SH NAME
+bc250\-nosuspend \- persistent block on system suspend
+.SH SYNOPSIS
+.B bc250\-nosuspend
+.RI [ COMMAND ]
+.RI [ OPTIONS ]
+.SH DESCRIPTION
+.B bc250\-nosuspend
+blocks suspend and hibernation at the systemd level rather than in the settings
+of a desktop environment. The block therefore applies equally in KDE, in Gaming
+Mode and on a machine with no display attached.
+.PP
+The block has two parts. First, the targets
+.IR sleep.target ,
+.IR suspend.target ,
+.IR hibernate.target ,
+.I hybrid\-sleep.target
+and
+.I suspend\-then\-hibernate.target
+are masked, so every suspend request fails regardless of who made it. Second, a
+logind configuration file is created with
+.IR IdleAction=ignore ,
+so that idling alone does not trigger a suspend.
+.PP
+Both changes are persistent and survive a reboot.
+.SH COMMANDS
+.TP
+.B status
+Shows the state of every systemd target, the
+.I IdleAction
+value in logind, whether the tool's configuration file is present, and the number
+of active inhibitors. Does not require root. Running without any command does the
+same.
+.TP
+.B start
+Sets the block. Before making changes it records which targets were already
+masked. Running it again on an already blocked system changes nothing.
+.TP
+.B stop
+Removes the block this tool set. Targets that were masked before the block was
+set stay masked \(em the tool reports that on standard error.
+.TP
+.B default
+Restores the system defaults: unmasks all five targets regardless of who masked
+them, and removes the logind configuration file. An escape hatch for when the
+configuration state is uncertain.
+.SH OPTIONS
+.TP
+.BR \-n ", " \-\-dry\-run
+Prints the commands that would be executed and exits without making any changes.
+Does not require root.
+.TP
+.BR \-l ", " \-\-lang " \fIpl\fR|\fIen\fR"
+Message language. Without this option it is taken from the
+.B BC250_LANG
+variable, then from the system locale; anything unrecognised falls back to
+English.
+.TP
+.BR \-h ", " \-\-help
+A short description of the commands and options.
+.TP
+.BR \-V ", " \-\-version
+The version.
+.SH EXIT STATUS
+The
+.B status
+command returns:
+.TP
+.B 0
+Suspend blocked \(em all targets masked.
+.TP
+.B 1
+Suspend possible \(em no target is masked.
+.TP
+.B 2
+Partially blocked \(em only some targets are masked.
+.PP
+The remaining commands return 0 on success and 1 on error.
+.SH PRIVILEGES
+.B status
+and any invocation with
+.B \-\-dry\-run
+run as an ordinary user.
+.BR start ", " stop
+and
+.B default
+require root \(em the tool then retries the invocation through
+.BR sudo (8).
+.SH ENVIRONMENT
+.TP
+.B BC250_LANG
+Message language
+.RI ( pl
+or
+.IR en )
+when
+.B \-\-lang
+is not given.
+.SH FILES
+.TP
+.I /etc/systemd/system/*.target
+Masks of the suspend targets, that is symlinks to
+.IR /dev/null .
+.TP
+.I /etc/systemd/logind.conf.d/10-bc250-nosuspend.conf
+The
+.I IdleAction=ignore
+setting for logind.
+.TP
+.I /var/lib/bc250-nosuspend/previous-mask-state
+The list of targets masked before the block was set. On this basis
+.B stop
+reverses only the tool's own changes.
+.SH EXAMPLES
+Checking the state:
+.PP
+.RS
+.EX
+bc250\-nosuspend status
+.EE
+.RE
+.PP
+Previewing the changes without applying them:
+.PP
+.RS
+.EX
+bc250\-nosuspend start \-\-dry\-run
+.EE
+.RE
+.PP
+Setting the block only when it is not already in place:
+.PP
+.RS
+.EX
+bc250\-nosuspend status >/dev/null || bc250\-nosuspend start
+.EE
+.RE
+.PP
+Reversing the changes by hand, should the tool be unavailable:
+.PP
+.RS
+.EX
+sudo systemctl unmask sleep.target suspend.target hibernate.target \\
+                      hybrid\-sleep.target suspend\-then\-hibernate.target
+sudo rm \-f /etc/systemd/logind.conf.d/10\-bc250\-nosuspend.conf
+sudo systemctl reload systemd\-logind
+.EE
+.RE
+.SH NOTES
+The tool does not manage screen blanking \(em that is a separate mechanism of the
+desktop environment, unrelated to system suspend. The screen may therefore still
+blank while the block is in place.
+.PP
+For a one\-off block lasting a single command, prefer
+.BR systemd\-inhibit (1):
+.PP
+.RS
+.EX
+systemd\-inhibit \-\-what=sleep \-\-why="compiling" make \-j16
+.EE
+.RE
+.SH SEE ALSO
+.BR systemctl (1),
+.BR systemd\-inhibit (1),
+.BR logind.conf (5),
+.BR systemd.special (7),
+.BR bc250-mon (1)
+.SH BUGS
+Report issues at:
+.UR https://github.com/zvgelo/bc250-tool-kit/issues
+.UE

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="380" viewBox="0 0 1200 380" role="img" aria-labelledby="title desc">
+<title id="title">bc250-nosuspend: no suspend, no hibernation</title>
+<desc id="desc">bc250-nosuspend blocks suspend and hibernation at the systemd level; next to it, its status output after bc250-nosuspend start.</desc>
+<rect width="1200" height="380" rx="18" fill="#0b0e12"/>
+<text x="56" y="76" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">bc250-tool-kit</text>
+<text x="56" y="136" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="56" font-weight="bold" fill="#e6e9ee" text-anchor="start">bc250-nosuspend</text>
+<text x="56" y="190" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="26" font-weight="normal" fill="#e6e9ee" text-anchor="start">Suspend and hibernation</text>
+<text x="56" y="226" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="26" font-weight="normal" fill="#e6e9ee" text-anchor="start">blocked at the systemd level</text>
+<text x="56" y="262" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="26" font-weight="normal" fill="#46c6d8" text-anchor="start">KDE · Gaming Mode · headless</text>
+<text x="56" y="312" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">Bash + systemd · undo: bc250-nosuspend stop</text>
+<rect x="616" y="48" width="536" height="300" rx="6" fill="#11161c" stroke="#2a3f6e" stroke-width="2"/>
+<rect x="634" y="34" width="355" height="28" fill="#0b0e12"/>
+<text x="644" y="55" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="bold" fill="#46c6d8" text-anchor="start">after bc250-nosuspend start</text>
+<text x="638" y="92" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="19" font-weight="normal" fill="#e6e9ee" text-anchor="start">$ bc250-nosuspend status</text>
+<text x="638" y="118" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="19" font-weight="normal" fill="#5cc96a" text-anchor="start">State: SUSPEND BLOCKED</text>
+<text x="638" y="170" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="19" font-weight="normal" fill="#46c6d8" text-anchor="start">systemd targets</text>
+<text x="638" y="196" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="19" font-weight="normal" fill="#e6e9ee" text-anchor="start">  sleep.target            masked</text>
+<text x="638" y="222" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="19" font-weight="normal" fill="#e6e9ee" text-anchor="start">  suspend.target          masked</text>
+<text x="638" y="248" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="19" font-weight="normal" fill="#e6e9ee" text-anchor="start">  hibernate.target        masked</text>
+<text x="638" y="274" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="19" font-weight="normal" fill="#e6e9ee" text-anchor="start">  hybrid-sleep.target     masked</text>
+<text x="638" y="300" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="19" font-weight="normal" fill="#46c6d8" text-anchor="start">logind</text>
+<text x="638" y="326" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="19" font-weight="normal" fill="#e6e9ee" text-anchor="start">  IdleAction              ignore</text>
+</svg>

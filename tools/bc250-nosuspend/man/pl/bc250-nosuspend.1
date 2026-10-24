@@ -1,0 +1,171 @@
+.TH BC250\-NOSUSPEND 1 "2026-09-07" "bc250-nosuspend 0.1.0" "Podręcznik użytkownika"
+.SH NAZWA
+bc250\-nosuspend \- trwała blokada usypiania systemu
+.SH SKŁADNIA
+.B bc250\-nosuspend
+.RI [ KOMENDA ]
+.RI [ OPCJE ]
+.SH OPIS
+.B bc250\-nosuspend
+blokuje uśpienie i hibernację na poziomie systemd, a nie w ustawieniach
+środowiska graficznego. Dzięki temu blokada obowiązuje tak samo w KDE,
+w Gaming Mode i na maszynie bez podłączonego ekranu.
+.PP
+Blokada składa się z dwóch elementów. Po pierwsze maskowane są cele
+.IR sleep.target ,
+.IR suspend.target ,
+.IR hibernate.target ,
+.I hybrid\-sleep.target
+oraz
+.IR suspend\-then\-hibernate.target ,
+przez co każde żądanie uśpienia kończy się błędem niezależnie od tego, kto je
+złożył. Po drugie powstaje plik konfiguracyjny logind z
+.IR IdleAction=ignore ,
+żeby sama bezczynność nie wywoływała usypiania.
+.PP
+Obie zmiany są trwałe i przeżywają ponowne uruchomienie systemu.
+.SH KOMENDY
+.TP
+.B status
+Pokazuje stan każdego celu systemd, wartość
+.I IdleAction
+w logind, obecność pliku konfiguracyjnego narzędzia oraz liczbę aktywnych
+inhibitorów. Nie wymaga uprawnień roota. Uruchomienie bez żadnej komendy
+działa tak samo.
+.TP
+.B start
+Zakłada blokadę. Przed zmianą zapisuje, które cele były zamaskowane wcześniej.
+Powtórne wywołanie na już zablokowanym systemie niczego nie zmienia.
+.TP
+.B stop
+Zdejmuje blokadę założoną przez to narzędzie. Cele zamaskowane jeszcze przed
+jej założeniem pozostają zamaskowane \(em narzędzie informuje o tym na wyjściu
+diagnostycznym.
+.TP
+.B default
+Przywraca domyślne zachowanie systemu: odmaskowuje wszystkie pięć celów
+niezależnie od tego, kto je zamaskował, i usuwa plik konfiguracyjny logind.
+Wyjście awaryjne, gdy stan konfiguracji jest niepewny.
+.SH OPCJE
+.TP
+.BR \-n ", " \-\-dry\-run
+Wypisuje polecenia, które zostałyby wykonane, i kończy działanie bez
+wprowadzania zmian. Nie wymaga uprawnień roota.
+.TP
+.BR \-l ", " \-\-lang " \fIpl\fR|\fIen\fR"
+Język komunikatów. Bez tej opcji brany ze zmiennej
+.BR BC250_LANG ,
+a dalej z locale systemu; nierozpoznane ustawienie oznacza angielski.
+.TP
+.BR \-h ", " \-\-help
+Skrócony opis komend i opcji.
+.TP
+.BR \-V ", " \-\-version
+Wersja.
+.SH KODY WYJŚCIA
+Komenda
+.B status
+zwraca:
+.TP
+.B 0
+Usypianie zablokowane \(em wszystkie cele zamaskowane.
+.TP
+.B 1
+Usypianie możliwe \(em żaden cel nie jest zamaskowany.
+.TP
+.B 2
+Blokada częściowa \(em zamaskowana jest tylko część celów.
+.PP
+Pozostałe komendy zwracają 0 przy powodzeniu i 1 przy błędzie.
+.SH UPRAWNIENIA
+.B status
+oraz każde wywołanie z
+.B \-\-dry\-run
+działają na prawach zwykłego użytkownika.
+.BR start ", " stop
+i
+.B default
+wymagają uprawnień roota \(em narzędzie samo ponawia wtedy wywołanie przez
+.BR sudo (8).
+.SH ŚRODOWISKO
+.TP
+.B BC250_LANG
+Język komunikatów
+.RI ( pl
+albo
+.IR en ),
+gdy nie podano
+.BR \-\-lang .
+.SH PLIKI
+.TP
+.I /etc/systemd/system/*.target
+Maski celów usypiania, czyli dowiązania do
+.IR /dev/null .
+.TP
+.I /etc/systemd/logind.conf.d/10-bc250-nosuspend.conf
+Ustawienie
+.I IdleAction=ignore
+dla logind.
+.TP
+.I /var/lib/bc250-nosuspend/previous-mask-state
+Lista celów zamaskowanych przed założeniem blokady. Na tej podstawie
+.B stop
+cofa wyłącznie własne zmiany.
+.SH PRZYKŁADY
+Sprawdzenie stanu:
+.PP
+.RS
+.EX
+bc250\-nosuspend status
+.EE
+.RE
+.PP
+Podgląd zmian bez ich wprowadzania:
+.PP
+.RS
+.EX
+bc250\-nosuspend start \-\-dry\-run
+.EE
+.RE
+.PP
+Założenie blokady tylko wtedy, gdy jeszcze jej nie ma:
+.PP
+.RS
+.EX
+bc250\-nosuspend status >/dev/null || bc250\-nosuspend start
+.EE
+.RE
+.PP
+Ręczne cofnięcie zmian, gdyby narzędzie było niedostępne:
+.PP
+.RS
+.EX
+sudo systemctl unmask sleep.target suspend.target hibernate.target \\
+                      hybrid\-sleep.target suspend\-then\-hibernate.target
+sudo rm \-f /etc/systemd/logind.conf.d/10\-bc250\-nosuspend.conf
+sudo systemctl reload systemd\-logind
+.EE
+.RE
+.SH UWAGI
+Narzędzie nie zarządza wygaszaniem ekranu \(em to osobny mechanizm środowiska
+graficznego, niezwiązany z usypianiem systemu. Przy założonej blokadzie ekran
+może więc dalej gasnąć.
+.PP
+Do jednorazowej blokady na czas pojedynczego polecenia lepiej użyć
+.BR systemd\-inhibit (1):
+.PP
+.RS
+.EX
+systemd\-inhibit \-\-what=sleep \-\-why="kompilacja" make \-j16
+.EE
+.RE
+.SH ZOBACZ TAKŻE
+.BR systemctl (1),
+.BR systemd\-inhibit (1),
+.BR logind.conf (5),
+.BR systemd.special (7),
+.BR bc250-mon (1)
+.SH BŁĘDY
+Zgłoszenia:
+.UR https://github.com/zvgelo/bc250-tool-kit/issues
+.UE
