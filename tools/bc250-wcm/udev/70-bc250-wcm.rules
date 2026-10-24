@@ -1,0 +1,13 @@
+# bc250-wcm (Wireless Controller Monitor): read access to the hidraw nodes of
+# the 8BitDo Ultimate 2C 2.4 GHz receiver for the user at the seat.
+#
+# Only needed for `bc250-wcm hid capture` (passive research of the vendor
+# interface) and only when Steam's 60-steam-input.rules is not installed —
+# that rule already tags every 2dc8 hidraw node with uaccess.
+#
+# uaccess gives the logged-in seat user an ACL on the node, nobody else: no
+# MODE 0666, no group widening. It is processed by 73-seat-late.rules, so this
+# file must sort before it (70-…); a 99-… rule would silently do nothing.
+# Monitoring itself (sysfs + the gamepad's evdev node) needs none of this.
+
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="2dc8", ATTRS{idProduct}=="310a|301c", TAG+="uaccess"

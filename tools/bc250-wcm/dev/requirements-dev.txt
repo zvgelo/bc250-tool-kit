@@ -1,0 +1,2 @@
+# bc250-wcm needs nothing outside the standard library, and neither do its
+# tests or dev/tuishot.py. This file is kept for symmetry with the other tools.

@@ -1,0 +1,263 @@
+.TH BC250\-WCM 1 "2026-10-18" "bc250-wcm 0.2.0" "Podręcznik użytkownika"
+.SH NAZWA
+bc250\-wcm \- Wireless Controller Monitor: pady Bluetooth i odbiorniki USB 2,4 GHz
+.SH SKŁADNIA
+.B bc250\-wcm
+.RI [ OPCJE ]
+.br
+.B bc250\-wcm hid
+.RB { list | descriptor | capture | analyze }
+.RI ...
+.SH OPIS
+.B bc250\-wcm
+(Wireless Controller Monitor, wcześniej bc250\-btmon) pokazuje kontrolery do gier
+połączone przez Bluetooth i przez dedykowane odbiorniki USB 2,4 GHz i monitoruje
+od jednego do czterech naraz, dowolnego rodzaju, na terminalowym pulpicie w stylu
+.BR btop (1):
+RSSI aktywnego łącza z wykresem historii, minimum, maksimum, średnią
+i odchyleniem standardowym, rozłączenia, powroty i czas przerw, baterię oraz
+zdarzenia urządzenia.
+.PP
+Adaptery, urządzenia i ich stan pochodzą z BlueZ przez systemowy D\-Bus. RSSI
+aktywnego łącza pochodzi z Management API jądra (Get Connection Information,
+polecenie stojące za
+.BR "btmgmt conn\-info" );
+wymaga CAP_NET_ADMIN, które zapewnia mały helper tylko\-do\-odczytu uruchamiany
+przez
+.BR sudo (8)
+\(em sam interfejs działa bez uprawnień. Komunikaty Bluetooth jądra (timeouty
+komend HCI, resety USB, firmware) są śledzone przez
+.BR journalctl (1).
+.PP
+Adaptery są rozpoznawane po adresie kontrolera (oraz porcie USB, gdy dwa
+adaptery mają ten sam adres), a nie po indeksie
+.IR hciN .
+Gdy adapter się zresetuje i zarejestruje pod innym indeksem, monitorowanie
+wznawia się samo, a dziennik zdarzeń odnotowuje zmianę.
+.PP
+Rozłączenie jest zapisywane jako przerwa, nigdy jako RSSI równe 0. Program nie
+pokazuje utraty pakietów, opóźnienia ani „jakości łącza”; pasma kolorów to progi
+z konfiguracji, oznaczone jako przybliżenie. Na łączach BR/EDR wartość jest
+względna wobec „złotego zakresu” odbiornika (dB), nie w dBm.
+.PP
+Program nigdy sam nie resetuje adaptera, nie restartuje usług i nie włącza
+wyszukiwania.
+.PP
+Kontrolery i odbiorniki USB są wykrywane w sysfs, bez uprawnień, i rozpoznawane
+po miejscu na magistrali, więc odbiornik zmieniający ID produktu (8BitDo
+Ultimate 2C: 2dc8:301c bez pada, 2dc8:310a z padem) albo przepięty pozostaje
+tym samym urządzeniem. Odbiornik nie podaje siły sygnału, a ze stock firmware
+także baterii: obie wartości są pokazywane jako n/d, nigdy szacowane. Zamiast
+tego panel pokazuje stan łącza wzięty z ID produktu i aktywność wejścia pada
+(zdarzenia na sekundę z jego węzła evdev, tylko odczyt, bez przejmowania) \(em
+miarę używania, nie radia.
+.SH OPCJE
+.TP
+.BR \-i ", " \-\-interval " \fISEK\fR"
+Interwał próbkowania, domyślnie 1,0 (0,2\(en60). W trakcie pracy zmieniany
+klawiszami
+.B +
+i
+.BR \- .
+.TP
+.BR \-m ", " \-\-monitor " \fIMAC\fR ..."
+Od razu monitoruj te urządzenia (od jednego do czterech).
+.TP
+.B \-\-list
+Wypisz adaptery i urządzenia i zakończ. Nie wymaga uprawnień.
+.TP
+.B \-\-json
+To samo jako JSON.
+.TP
+.BI \-\-headless " SEK"
+Bez interfejsu: próbkuj urządzenia podane w
+.B \-\-monitor
+przez
+.I SEK
+sekund, wypisuj linię na próbkę i podsumowanie.
+.TP
+.BI \-\-export " PLIK"
+Po
+.B \-\-headless
+zapisz pomiary do
+.I PLIKU
+(CSV albo JSON, gdy nazwa kończy się na .json).
+.TP
+.BI \-\-record " PLIK.csv"
+Dopisuj każdą próbkę do pliku CSV na bieżąco.
+.TP
+.BR \-\-rssi\-backend " auto|helper|direct|btmgmt|none"
+Skąd brać RSSI łącza. auto: zainstalowany helper bez pytania, w przeciwnym
+razie dołączony helper po jednym
+.BR "sudo \-v" ,
+w ostateczności brak; jako root \(em gniazdo mgmt bezpośrednio.
+.TP
+.B \-\-no\-sudo
+Nigdy nie pytaj o hasło.
+.TP
+.B \-\-no\-kernel\-log
+Nie śledź dziennika jądra.
+.TP
+.B \-\-no\-usb
+Pomiń kontrolery i odbiorniki USB.
+.TP
+.B \-\-no\-input\-activity
+Nie licz zdarzeń wejściowych.
+.TP
+.BI \-\-config " PLIK"
+Plik konfiguracji zamiast
+.IR ~/.config/bc250\-wcm/config.ini .
+.TP
+.B \-\-print\-config
+Wypisz przykładową konfigurację z każdym ustawieniem i wartością domyślną.
+.TP
+.B \-\-ascii
+Tylko znaki ASCII.
+.TP
+.B \-\-no\-color
+Bez kolorów (również gdy ustawione jest NO_COLOR).
+.TP
+.B \-\-demo
+Symulacja: dwa pady, rozłączenie, timeout HCI i ponowna rejestracja hci0 \(-> hci1.
+Bez sprzętu.
+.TP
+.BI \-\-demo\-speed " N"
+Przyspieszenie osi czasu symulacji N razy (z
+.BR \-\-demo ).
+.TP
+.BR \-\-lang " pl|en"
+Język interfejsu.
+.SH BADANIE HID
+.B bc250\-wcm hid
+bada interfejsy HID, przede wszystkim interfejsy producenta, wyłącznie do
+odczytu: węzły są otwierane tylko do odczytu i żaden kod nie wysyła raportu.
+Węzeł wybiera się jako
+.IR hidrawN ,
+.I /dev/hidrawN
+albo \(em stabilnie mimo przepięcia \(em
+.IR vid:pid:interfejs ,
+np. 2dc8:310a:2.
+.TP
+.BR "hid list " [ \-\-json ]
+Wszystkie węzły hidraw: selektor, nazwa, strony użycia, raporty, dostęp.
+.TP
+.BI "hid descriptor " SEL
+Deskryptor raportów, surowy i zdekodowany.
+.TP
+.BI "hid capture " SEL " \fR[\fB\-t\fR \fISEK\fR] [\fB\-o\fR \fIPLIK\fR] [\fB\-\-marks\fR] [\fB\-\-quiet\fR]"
+Wypisuje raporty wejściowe szesnastkowo (zmienione bajty w nawiasach) i zapisuje
+je jako linie JSON. Z \-\-marks każda linia wpisana na stdin staje się
+opisanym znacznikiem czasu; z \-\-quiet tylko zapisuje.
+.TP
+.BI "hid analyze " "PLIK \fR[\fIPLIK2\fR] [\fB\-\-window\fR \fISEK\fR]"
+Bajty stałe i zmienne dla każdego ID raportu, zakresy wartości, różnice między
+dwoma zrzutami, bajty zmienione w ciągu SEK sekund (domyślnie 1) po każdym
+znaczniku.
+.SH KLAWISZE
+.SS Wybór urządzeń
+.TP
+.BR Spacja ", " 1 \(en 9
+Zaznacz lub odznacz urządzenie (najwyżej cztery).
+.TP
+.B Enter
+Monitoruj zaznaczone.
+.TP
+.BR / ", " f ", " o
+Szukaj, zmień filtr (wszystkie, połączone, sparowane, wykryte), zmień sortowanie.
+.TP
+.B d
+Włącz lub wyłącz wyszukiwanie na adapterze. To skanowanie LE dostawało timeout
+(opcode 0x2042) na donglach RTL8761BU; przy połączonych padach zostaw je
+wyłączone.
+.SS Pulpit
+.TP
+.BR Tab ", strzałki, " 1 \(en 4
+Wybór panelu.
+.TP
+.B Enter
+Szczegóły urządzenia.
+.TP
+.B s
+Zmień wybór; historia zostaje.
+.TP
+.BR p ", " l ", " r
+Pauza próbkowania, dziennik zdarzeń, zerowanie statystyk.
+.TP
+.BR e ", " j
+Eksport CSV, eksport JSON.
+.TP
+.BR c ", " g
+Panele kompaktowe, wykres Braille albo ASCII.
+.SS Wszędzie
+.TP
+.BR h ", " ? ", " Esc ", " q
+Pomoc, wróć, wyjście.
+.SH PLIKI
+.TP
+.I ~/.config/bc250\-wcm/config.ini
+Konfiguracja (INI). Patrz
+.BR \-\-print\-config .
+.TP
+.I ~/.local/state/bc250\-wcm/events.jsonl
+Dziennik zdarzeń, obiekt JSON na linię; rotowany przy 2 MiB.
+.TP
+.I ~/.local/state/bc250\-wcm/selection
+Urządzenia monitorowane ostatnio, zaznaczane przy następnym starcie.
+.TP
+.I ~/.local/state/bc250\-wcm/receivers
+Miejsca USB widziane jako bezczynny odbiornik, więc późniejsze 2dc8:310a jest
+tam rozpoznawane jako odbiornik, a nie pad na kablu.
+.TP
+.I /etc/udev/rules.d/70\-bc250\-wcm.rules
+Opcjonalna reguła uaccess dla węzłów hidraw odbiornika (install.sh \-\-udev).
+.TP
+.I ~/.local/share/bc250\-wcm/exports/
+Eksporty.
+.TP
+.I /usr/local/libexec/bc250\-wcm/rssi\-helper
+Helper instalowany przez
+.BR "install.sh \-\-rssi\-helper" ,
+razem z
+.IR /etc/sudoers.d/bc250\-wcm .
+.SH ŚRODOWISKO
+.TP
+.B BC250_LANG
+Język interfejsu, pl albo en.
+.TP
+.B NO_COLOR
+Wyłącza kolory.
+.TP
+.BR XDG_CONFIG_HOME ", " XDG_STATE_HOME ", " XDG_DATA_HOME
+Katalogi bazowe powyższych plików.
+.SH PRZYKŁADY
+.TP
+.B bc250\-wcm \-\-list
+Co jest dostępne.
+.TP
+.B bc250\-wcm \-m E4:17:D8:00:00:01 E4:17:D8:00:00:02
+Dwa pady, od razu pulpit.
+.TP
+.B bc250\-wcm \-\-headless 120 \-m E4:17:D8:00:00:01 \-\-export run.json
+Dwie minuty próbek do pliku, bez interfejsu.
+.SH KOD WYJŚCIA
+0 przy powodzeniu; 1, gdy
+.B \-\-list
+lub
+.B \-\-json
+nie dotarły do BlueZ albo
+.B \-\-headless
+nie znalazł żadnego z urządzeń; 2 przy błędnych argumentach lub braku terminala.
+.SH ZOBACZ TEŻ
+.BR btmgmt (1),
+.BR bluetoothctl (1),
+.BR journalctl (1),
+.BR bc250\-mon (1)
+.PP
+docs/architecture.pl.md, docs/permissions.pl.md, docs/usb\-receivers.pl.md
+i docs/hardware\-testing.pl.md w katalogu narzędzia.
+.SH BŁĘDY
+Zgłoszenia:
+.UR https://github.com/zvgelo/bc250-tool-kit/issues
+.UE
+Do zgłoszenia warto dołączyć wynik polecenia
+.BR "bc250-wcm --list" .

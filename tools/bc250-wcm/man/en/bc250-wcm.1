@@ -1,0 +1,258 @@
+.TH BC250\-WCM 1 "2026-10-18" "bc250-wcm 0.2.0" "User Manual"
+.SH NAME
+bc250\-wcm \- Wireless Controller Monitor: Bluetooth pads and USB 2.4 GHz receivers
+.SH SYNOPSIS
+.B bc250\-wcm
+.RI [ OPTIONS ]
+.br
+.B bc250\-wcm hid
+.RB { list | descriptor | capture | analyze }
+.RI ...
+.SH DESCRIPTION
+.B bc250\-wcm
+(Wireless Controller Monitor, formerly bc250\-btmon) shows game controllers
+connected over Bluetooth and through dedicated USB 2.4 GHz receivers, and
+monitors one to four of them at a time, of either kind, in a terminal dashboard in the style of
+.BR btop (1):
+the RSSI of the live link with a history graph, minimum, maximum, average and
+standard deviation, disconnects, reconnects and down time, battery, and the
+device's events.
+.PP
+Adapters, devices and their state come from BlueZ over the system D\-Bus. The
+RSSI of a live link comes from the kernel Management API (Get Connection
+Information, the command behind
+.BR "btmgmt conn\-info" );
+it needs CAP_NET_ADMIN, which a small read\-only helper started through
+.BR sudo (8)
+provides \(em the interface itself stays unprivileged. Kernel Bluetooth
+messages (HCI command timeouts, USB resets, firmware) are followed through
+.BR journalctl (1).
+.PP
+Adapters are identified by their controller address (plus the USB port when
+two adapters share one), not by their
+.I hciN
+index. When an adapter resets and re\-registers under another index, monitoring
+resumes on its own and the event log records the remap.
+.PP
+A disconnect is recorded as a gap, never as an RSSI of 0. The program shows no
+packet loss, latency or "link quality" figures; the colour bands are thresholds
+from the configuration and are marked as an approximation. On BR/EDR links the
+value is relative to the controller's golden receive range (dB), not dBm.
+.PP
+The program never resets an adapter, restarts a service or starts discovery by
+itself.
+.PP
+USB controllers and receivers are found in sysfs, without privileges, and
+identified by their place on the bus, so a receiver that switches its product
+ID (8BitDo Ultimate 2C: 2dc8:301c idle, 2dc8:310a with a pad linked) or is
+re\-plugged stays the same device. A receiver reports no signal strength and,
+with stock firmware, no battery: both are shown as n/a, never estimated.
+Instead the panel shows the link state taken from the product ID and the pad's
+input activity (events per second from its evdev node, read\-only, never
+grabbed) \(em a measure of use, not of the radio.
+.SH OPTIONS
+.TP
+.BR \-i ", " \-\-interval " \fISEC\fR"
+Sampling interval, default 1.0 (0.2\(en60). Changed at runtime with
+.B +
+and
+.BR \- .
+.TP
+.BR \-m ", " \-\-monitor " \fIMAC\fR ..."
+Start monitoring these one to four devices right away.
+.TP
+.B \-\-list
+Print adapters and devices and exit. Needs no privileges.
+.TP
+.B \-\-json
+The same as JSON.
+.TP
+.BI \-\-headless " SEC"
+No interface: sample the devices given with
+.B \-\-monitor
+for
+.I SEC
+seconds, print one line per sample and a summary.
+.TP
+.BI \-\-export " FILE"
+After
+.BR \-\-headless ,
+write the measurements to
+.I FILE
+(CSV, or JSON when the name ends in .json).
+.TP
+.BI \-\-record " FILE.csv"
+Append every sample to a CSV file as it is taken.
+.TP
+.BR \-\-rssi\-backend " auto|helper|direct|btmgmt|none"
+Where link RSSI comes from. auto: the installed helper without a prompt, else
+the bundled helper after one
+.BR "sudo \-v" ,
+else none; as root, the mgmt socket directly.
+.TP
+.B \-\-no\-sudo
+Never ask for a password.
+.TP
+.B \-\-no\-kernel\-log
+Do not follow the kernel log.
+.TP
+.B \-\-no\-usb
+Skip USB controllers and receivers.
+.TP
+.B \-\-no\-input\-activity
+Do not count input events.
+.TP
+.BI \-\-config " FILE"
+Configuration file instead of
+.IR ~/.config/bc250\-wcm/config.ini .
+.TP
+.B \-\-print\-config
+Print an example configuration with every setting and its default.
+.TP
+.B \-\-ascii
+ASCII characters only.
+.TP
+.B \-\-no\-color
+No colours (also when NO_COLOR is set).
+.TP
+.B \-\-demo
+A simulation: two pads, a disconnect, an HCI timeout and an hci0 \(-> hci1
+re\-registration. No hardware needed.
+.TP
+.BI \-\-demo\-speed " N"
+Speed up the simulation timeline N times (with
+.BR \-\-demo ).
+.TP
+.BR \-\-lang " pl|en"
+Interface language.
+.SH HID RESEARCH
+.B bc250\-wcm hid
+inspects HID interfaces, vendor\-defined ones above all, strictly read\-only:
+nodes are opened read\-only and no code sends a report. A node is selected as
+.IR hidrawN ,
+.IR /dev/hidrawN ,
+or \(em stable across re\-plugging \(em
+.IR vid:pid:interface ,
+e.g. 2dc8:310a:2.
+.TP
+.BR "hid list " [ \-\-json ]
+Every hidraw node: selector, name, usage pages, reports, access.
+.TP
+.BI "hid descriptor " SEL
+The report descriptor, raw and decoded.
+.TP
+.BI "hid capture " SEL " \fR[\fB\-t\fR \fISEC\fR] [\fB\-o\fR \fIFILE\fR] [\fB\-\-marks\fR] [\fB\-\-quiet\fR]"
+Print input reports as hex (changed bytes in brackets) and save them as JSON
+lines. With \-\-marks every line typed on stdin becomes a labelled timestamp;
+\-\-quiet only saves.
+.TP
+.BI "hid analyze " "FILE \fR[\fIFILE2\fR] [\fB\-\-window\fR \fISEC\fR]"
+Constant and changing bytes per report ID, value ranges, differences between
+two captures, bytes that changed within SEC seconds (default 1) after each mark.
+.SH KEYS
+.SS Device picker
+.TP
+.BR Space ", " 1 \(en 9
+Select or deselect a device (up to four).
+.TP
+.B Enter
+Monitor the selection.
+.TP
+.BR / ", " f ", " o
+Search, cycle the filter (all, connected, paired, discovered), cycle the sort order.
+.TP
+.B d
+Start or stop discovery on the adapter. LE scanning is what timed out
+(opcode 0x2042) on RTL8761BU dongles; leave it off next to connected pads.
+.SS Dashboard
+.TP
+.BR Tab ", arrows, " 1 \(en 4
+Choose a panel.
+.TP
+.B Enter
+Device details.
+.TP
+.B s
+Change the selection; history is kept.
+.TP
+.BR p ", " l ", " r
+Pause sampling, event log, reset statistics.
+.TP
+.BR e ", " j
+Export CSV, export JSON.
+.TP
+.BR c ", " g
+Compact panels, Braille or ASCII graph.
+.SS Everywhere
+.TP
+.BR h ", " ? ", " Esc ", " q
+Help, back, quit.
+.SH FILES
+.TP
+.I ~/.config/bc250\-wcm/config.ini
+Configuration (INI). See
+.BR \-\-print\-config .
+.TP
+.I ~/.local/state/bc250\-wcm/events.jsonl
+The event log, one JSON object per line; rotated at 2 MiB.
+.TP
+.I ~/.local/state/bc250\-wcm/selection
+The devices monitored last time, preselected on the next start.
+.TP
+.I ~/.local/state/bc250\-wcm/receivers
+USB places seen as an idle receiver, so a later 2dc8:310a there is known to be
+the receiver and not the pad on a cable.
+.TP
+.I /etc/udev/rules.d/70\-bc250\-wcm.rules
+Optional uaccess rule for the receiver's hidraw nodes (install.sh \-\-udev).
+.TP
+.I ~/.local/share/bc250\-wcm/exports/
+Exports.
+.TP
+.I /usr/local/libexec/bc250\-wcm/rssi\-helper
+The helper installed by
+.BR "install.sh \-\-rssi\-helper" ,
+together with
+.IR /etc/sudoers.d/bc250\-wcm .
+.SH ENVIRONMENT
+.TP
+.B BC250_LANG
+Interface language, pl or en.
+.TP
+.B NO_COLOR
+Disables colours.
+.TP
+.BR XDG_CONFIG_HOME ", " XDG_STATE_HOME ", " XDG_DATA_HOME
+Base directories of the files above.
+.SH EXAMPLES
+.TP
+.B bc250\-wcm \-\-list
+What is there.
+.TP
+.B bc250\-wcm \-m E4:17:D8:00:00:01 E4:17:D8:00:00:02
+Two pads, straight to the dashboard.
+.TP
+.B bc250\-wcm \-\-headless 120 \-m E4:17:D8:00:00:01 \-\-export run.json
+Two minutes of samples to a file, no interface.
+.SH EXIT STATUS
+0 on success; 1 when
+.B \-\-list
+or
+.B \-\-json
+could not reach BlueZ, or
+.B \-\-headless
+found none of the devices; 2 for invalid arguments or no terminal.
+.SH SEE ALSO
+.BR btmgmt (1),
+.BR bluetoothctl (1),
+.BR journalctl (1),
+.BR bc250\-mon (1)
+.PP
+docs/architecture.md, docs/permissions.md, docs/usb\-receivers.md and
+docs/hardware\-testing.md in the tool's directory.
+.SH BUGS
+Report issues at:
+.UR https://github.com/zvgelo/bc250-tool-kit/issues
+.UE
+It helps to attach the output of
+.BR "bc250-wcm --list" .

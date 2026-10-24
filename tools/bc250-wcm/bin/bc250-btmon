@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+"""Compatibility name: bc250-btmon became bc250-wcm (Wireless Controller Monitor).
+
+Not called `btmon` on purpose — that is BlueZ's own HCI trace tool.
+"""
+
+import os
+import sys
+
+tool_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.insert(0, tool_dir)
+
+from bc250wcm.cli import main  # noqa: E402
+
+if __name__ == "__main__":
+    sys.stderr.write("bc250-btmon is now bc250-wcm (Wireless Controller Monitor); "
+                     "this name keeps working for now.\n")
+    sys.exit(main())
