@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="380" viewBox="0 0 1200 380" role="img" aria-labelledby="title desc">
+<title id="title">bc250-tool-kit</title>
+<desc id="desc">bc250-tool-kit: narzędzia terminalowe dla płyty AMD BC-250 pod Bazzite; obok numerowane menu narzędzi wypisane przez ./run.sh --menu.</desc>
+<rect width="1200" height="380" rx="18" fill="#0b0e12"/>
+<text x="56" y="76" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">AMD BC-250 · Cyan Skillfish · Bazzite</text>
+<text x="56" y="140" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="60" font-weight="bold" fill="#e6e9ee" text-anchor="start">bc250-tool-kit</text>
+<text x="56" y="196" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="28" font-weight="normal" fill="#e6e9ee" text-anchor="start">Narzędzia terminalowe dla BC-250</text>
+<text x="56" y="236" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="28" font-weight="normal" fill="#46c6d8" text-anchor="start">czujniki, usypianie, kontrolery</text>
+<text x="56" y="300" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">Python stdlib + Bash · działa bez instalacji · PL / EN</text>
+<rect x="664" y="48" width="488" height="292" rx="6" fill="#11161c" stroke="#2a3f6e" stroke-width="2"/>
+<rect x="682" y="34" width="231" height="28" fill="#0b0e12"/>
+<text x="692" y="55" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="bold" fill="#46c6d8" text-anchor="start">BC-250 · terminal</text>
+<text x="686" y="98" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#e6e9ee" text-anchor="start">$ ./run.sh --menu</text>
+<text x="686" y="138" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">bc250-tool-kit</text>
+<text x="686" y="180" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">  1)</text>
+<text x="746" y="180" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="bold" fill="#5cc96a" text-anchor="start">bc250-mon</text>
+<text x="686" y="210" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">  2)</text>
+<text x="746" y="210" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="bold" fill="#5cc96a" text-anchor="start">bc250-nosuspend</text>
+<text x="686" y="240" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">  3)</text>
+<text x="746" y="240" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="bold" fill="#5cc96a" text-anchor="start">bc250-paddles</text>
+<text x="686" y="270" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">  4)</text>
+<text x="746" y="270" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="bold" fill="#5cc96a" text-anchor="start">bc250-wcm</text>
+<text x="686" y="314" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#e6e9ee" text-anchor="start">Tool number (q to quit): 1</text>
+</svg>

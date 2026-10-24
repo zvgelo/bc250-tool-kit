@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
+<title id="title">Cztery niezależne narzędzia</title>
+<desc id="desc">Cztery narzędzia zestawu: co robi każde, dla jakiego sprzętu jest i jego główne polecenie.</desc>
+<rect width="1200" height="680" rx="18" fill="#0b0e12"/>
+<text x="56" y="78" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="40" font-weight="bold" fill="#e6e9ee" text-anchor="start">Cztery niezależne narzędzia</text>
+<rect x="48" y="132" width="540" height="228" rx="6" fill="#11161c" stroke="#2a3f6e" stroke-width="2"/>
+<rect x="66" y="118" width="154" height="28" fill="#0b0e12"/>
+<text x="76" y="139" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="24" font-weight="bold" fill="#46c6d8" text-anchor="start">bc250-mon</text>
+<text x="74" y="190" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="24" font-weight="bold" fill="#e6e9ee" text-anchor="start">monitor czujników i sprzętu</text>
+<text x="74" y="224" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">pulpit jak btop, tabela jak HWiNFO</text>
+<text x="74" y="274" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">dla</text>
+<rect x="119" y="252" width="136" height="32" rx="16" fill="none" stroke="#e0a040" stroke-width="2"/>
+<text x="133" y="274" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="18" font-weight="normal" fill="#e0a040" text-anchor="start">AMD BC-250</text>
+<text x="74" y="330" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#5cc96a" text-anchor="start">$ bc250-mon</text>
+<rect x="628" y="132" width="540" height="228" rx="6" fill="#11161c" stroke="#2a3f6e" stroke-width="2"/>
+<rect x="646" y="118" width="243" height="28" fill="#0b0e12"/>
+<text x="656" y="139" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="24" font-weight="bold" fill="#46c6d8" text-anchor="start">bc250-nosuspend</text>
+<text x="654" y="190" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="24" font-weight="bold" fill="#e6e9ee" text-anchor="start">bez usypiania i hibernacji</text>
+<text x="654" y="224" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">na poziomie systemd, też w Gaming Mode</text>
+<text x="654" y="274" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">dla</text>
+<rect x="699" y="252" width="266" height="32" rx="16" fill="none" stroke="#e0a040" stroke-width="2"/>
+<text x="713" y="274" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="18" font-weight="normal" fill="#e0a040" text-anchor="start">każdy system z systemd</text>
+<text x="654" y="330" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#5cc96a" text-anchor="start">$ bc250-nosuspend start</text>
+<rect x="48" y="400" width="540" height="228" rx="6" fill="#11161c" stroke="#2a3f6e" stroke-width="2"/>
+<rect x="66" y="386" width="213" height="28" fill="#0b0e12"/>
+<text x="76" y="407" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="24" font-weight="bold" fill="#46c6d8" text-anchor="start">bc250-paddles</text>
+<text x="74" y="458" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="24" font-weight="bold" fill="#e6e9ee" text-anchor="start">L4/R4 jako tylne przyciski Steam</text>
+<text x="74" y="492" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">mapowanie SDL, Steam natywny i Flatpak</text>
+<text x="74" y="542" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">dla</text>
+<rect x="119" y="520" width="320" height="32" rx="16" fill="none" stroke="#e0a040" stroke-width="2"/>
+<text x="133" y="542" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="18" font-weight="normal" fill="#e0a040" text-anchor="start">8BitDo Ultimate 2C Wireless</text>
+<text x="74" y="598" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#5cc96a" text-anchor="start">$ bc250-paddles on</text>
+<rect x="628" y="400" width="540" height="228" rx="6" fill="#11161c" stroke="#2a3f6e" stroke-width="2"/>
+<rect x="646" y="386" width="154" height="28" fill="#0b0e12"/>
+<text x="656" y="407" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="24" font-weight="bold" fill="#46c6d8" text-anchor="start">bc250-wcm</text>
+<text x="654" y="458" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="24" font-weight="bold" fill="#e6e9ee" text-anchor="start">monitor kontrolerów bezprzewodowych</text>
+<text x="654" y="492" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="20" font-weight="normal" fill="#8a94a3" text-anchor="start">RSSI Bluetooth, stan łącza 2,4 GHz, zerwania</text>
+<text x="654" y="542" xml:space="preserve" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="normal" fill="#8a94a3" text-anchor="start">dla</text>
+<rect x="699" y="520" width="330" height="32" rx="16" fill="none" stroke="#e0a040" stroke-width="2"/>
+<text x="713" y="542" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="18" font-weight="normal" fill="#e0a040" text-anchor="start">pady BT · 8BitDo Ultimate 2C</text>
+<text x="654" y="598" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, 'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="20" font-weight="normal" fill="#5cc96a" text-anchor="start">$ bc250-wcm</text>
+</svg>

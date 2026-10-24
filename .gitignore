@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE
+.idea/
+.vscode/
+
+# System
+*.log
+*.tmp
+.DS_Store
+
+# cloned reference documentation (not ours)
+docs-ref/
+
+# local MCP configuration and a scratch directory for screenshots
+.mcp.json
+screen-shots/
+ss/
