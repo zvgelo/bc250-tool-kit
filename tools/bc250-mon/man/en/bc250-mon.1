@@ -1,0 +1,256 @@
+.TH BC250\-MON 1 "2026-09-07" "bc250-mon 0.1.0" "User Manual"
+.SH NAME
+bc250\-mon \- terminal sensor and hardware monitor for the AMD BC\-250
+.SH SYNOPSIS
+.B bc250\-mon
+.RI [ OPTIONS ]
+.SH DESCRIPTION
+.B bc250\-mon
+displays the hardware state of the AMD BC\-250 board (Cyan Skillfish APU,
+gfx1013) in a terminal. It combines the layout familiar from
+.BR btop (1)
+\(em panels with bars and graphs \(em with a complete sensor table in the style
+of HWiNFO, listing the current value of every channel alongside the minimum,
+maximum and average observed since the program started.
+.PP
+The program uses only the Python standard library and
+.B writes nothing:
+it reads
+.IR /sys ,
+.I /proc
+and
+.IR /sys/class/hwmon .
+It does not interfere with the GPU governor, CoolerControl, or the scripts that
+unlock CPU cores and compute units.
+.PP
+On hardware other than a BC\-250 the program falls back to a generic mode: it
+shows the sensors it actually finds and omits advice about hardware that is not
+present.
+.SH OPTIONS
+.TP
+.BR \-i ", " \-\-interval " \fISEC\fR"
+Refresh interval in seconds. Defaults to 1.0. In interactive mode it can be
+changed with
+.B +
+and
+.BR - .
+.TP
+.B \-\-once
+Print a one\-shot text report and exit. The format is convenient for pasting
+into bug reports.
+.TP
+.B \-\-json
+Print a snapshot of the state as JSON and exit. Intended for scripts and for
+logging over time.
+.TP
+.B \-\-lang " \fIpl\fR|\fIen\fR"
+Interface language. Without this option the language comes from the
+.B BC250_LANG
+variable, and failing that from the system locale; anything unrecognised falls
+back to English.
+.TP
+.B \-\-demo
+Run a simulated BC\-250 instead of reading hardware. Useful for previewing the
+interface and for developing the program on a machine that is not a BC\-250.
+.TP
+.B \-\-no\-diagnostics
+Start without the Diagnostics panel. The
+.B d
+key shows or hides it at any time.
+.TP
+.BR \-V ", " \-\-version
+Print the version.
+.TP
+.BR \-h ", " \-\-help
+Print a short description of the options.
+.SH VIEWS
+.SS Dashboard
+Panels for the GPU, CPU, motherboard and memory. Bars have one\-eighth\-character
+resolution, history graphs are drawn with Braille characters, and colour follows
+the temperature thresholds. Each panel shows several traces at once \(em for the
+GPU that is temperature, power and clock \(em rather than one stretched graph.
+On a tall window a condensed sensor table appears below the panels. At the
+bottom a
+.B Diagnostics
+panel lists detected problems.
+.PP
+The CPU panel reports physical cores and threads as
+.IR 8C/16T ,
+which matters after a core unlock, when the number of logical CPUs alone is
+misleading. If the thread list does not fit in the window, the program states
+how many threads it omitted.
+.SS Sensors
+A table of every
+.B hwmon
+channel, grouped by chip, with the columns
+.IR Now ,
+.IR Min ,
+.I Max
+and
+.IR Average .
+The equivalent of the HWiNFO sensor window.
+.SH KEYS
+.TP
+.BR q ", " Esc
+Quit.
+.TP
+.BR Tab ", " 1 ", " 2
+Switch between the dashboard and the sensor table.
+.TP
+.BR \(ua " " \(da " " PgUp " " PgDn " " Home " " End
+Scroll the sensor table.
+.TP
+.BR p ", " space
+Pause refreshing.
+.TP
+.B r
+Reset the collected minimums, maximums and averages.
+.TP
+.BR + ", " \-
+Change the refresh interval by 0.25 s (range 0.25\(en10 s).
+.TP
+.BR h ", " ?
+Help screen.
+.SH DIAGNOSTICS
+The program recognises known pitfalls of the BC\-250 board and, instead of
+reporting misleading numbers, explains the cause:
+.TP
+.B GPU load unavailable
+The amdgpu driver does not populate the activity field in
+.IR gpu_metrics ;
+bytes 0x1C\(en0x1D stay at 0xFFFF. This is the source of the well\-known
+\(lq655%\(rq reading in MangoHud. The
+.B cyan\-skillfish\-governor\-smu
+service fixes it with its default
+.I fix\-metrics
+option.
+.TP
+.B GPU locked at 1500 MHz
+The highest DPM level is 1500 MHz and no
+.B cyan\-skillfish\-governor\-*
+service is running. Without a governor the GPU will not scale above that
+frequency.
+.TP
+.B pp_dpm_sclk reports nonsense
+After unlocking eight CPU cores the kernel reports wrong clocks. When the whole
+table is scaled down (for example
+.I 15Mhz
+instead of
+.IR 1500Mhz )
+the program multiplies it by 100 and flags the correction. When only the active
+level is wrong (for example 98 MHz in a 1000\(en2000 MHz range) no factor fits,
+so the GPU clock is taken from the averaged field of
+.IR gpu_metrics ,
+and with a governor configuration also estimated from vddgfx on the governor's
+voltage curve. The GPU itself runs normally \(em this is a reporting bug, not a
+performance one.
+.TP
+.B SuperIO module
+Distinguishes
+.B nct6683
+(read\-only) from
+.B nct6687
+(read and write, including PWM) and reminds you which one fan control requires.
+.TP
+.B Temperature thresholds
+GPU 85/90 \(deC, CPU 80/90 \(deC, NVMe 70/80 \(deC \(em warning and critical
+values taken from the BC\-250 community documentation.
+.TP
+.B Fans at 0 RPM
+With the SuperIO module loaded this usually means a fan connected outside the
+monitored J1 and J4003 headers, or a fan mode set in the BIOS.
+.SH FILES
+.TP
+.I /sys/class/drm/card*/device/
+amdgpu card data: PCI identifier,
+.IR pp_dpm_sclk ,
+.IR pp_dpm_mclk ,
+.IR gpu_metrics ,
+.IR gpu_busy_percent ,
+.IR mem_info_vram_* ,
+.IR power_dpm_force_performance_level .
+.TP
+.I /sys/class/hwmon/hwmon*/
+Temperatures, voltages, fan speeds, PWM and power draw from the amdgpu,
+k10temp, nct6686 and nvme chips.
+.TP
+.I /proc/stat ", " /proc/meminfo ", " /proc/loadavg ", " /proc/modules
+Per\-core load, memory, system load average, loaded modules.
+.TP
+.I /sys/devices/system/cpu/cpu*/
+Current CPU clocks, governor and driver names, and the topology used to count
+physical cores.
+.SH ENVIRONMENT
+.TP
+.B BC250_LANG
+Interface language
+.RI ( pl
+or
+.IR en )
+when
+.B \-\-lang
+is not given.
+.SH EXAMPLES
+An interactive monitor refreshed twice a second:
+.PP
+.RS
+.EX
+bc250\-mon \-i 0.5
+.EE
+.RE
+.PP
+A report for a bug report:
+.PP
+.RS
+.EX
+bc250\-mon \-\-once > bc250\-state.txt
+.EE
+.RE
+.PP
+Logging GPU temperature every five seconds:
+.PP
+.RS
+.EX
+while sleep 5; do bc250\-mon \-\-json | jq \-r '[now, .gpu.temp_c, .gpu.power_w] | @csv'; done
+.EE
+.RE
+.PP
+Previewing the interface without a BC\-250 board:
+.PP
+.RS
+.EX
+bc250\-mon \-\-demo
+.EE
+.RE
+.SH EXIT STATUS
+.TP
+.B 0
+Finished normally.
+.TP
+.B 2
+No interactive terminal when started without
+.B \-\-once
+or
+.BR \-\-json .
+.SH REQUIREMENTS
+Python 3.9 or newer. Board sensors require a loaded SuperIO module:
+.B modprobe nct6687 force=true
+(full access including PWM) or
+.B modprobe nct6683 force=true
+(read\-only).
+.SH SEE ALSO
+.BR sensors (1),
+.BR btop (1),
+.BR nvtop (1),
+.BR radeontop (1),
+.BR bc250-nosuspend (1)
+.PP
+BC\-250 community documentation:
+.UR https://github.com/elektricM/amd-bc250-docs
+.UE
+.SH BUGS
+Report issues at:
+.UR https://github.com/zvgelo/bc250-tool-kit/issues
+.UE
+Please attach the output of
+.BR "bc250-mon --once" .

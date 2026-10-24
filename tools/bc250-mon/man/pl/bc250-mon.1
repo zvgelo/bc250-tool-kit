@@ -1,0 +1,249 @@
+.TH BC250\-MON 1 "2026-09-07" "bc250-mon 0.1.0" "Podręcznik użytkownika"
+.SH NAZWA
+bc250\-mon \- terminalowy monitor czujników i sprzętu AMD BC\-250
+.SH SKŁADNIA
+.B bc250\-mon
+.RI [ OPCJE ]
+.SH OPIS
+.B bc250\-mon
+wyświetla stan sprzętu płyty AMD BC\-250 (APU Cyan Skillfish, gfx1013) w terminalu.
+Łączy układ znany z
+.BR btop (1)
+\(em panele z paskami i wykresami \(em z kompletną tabelą czujników w stylu HWiNFO,
+podającą dla każdego kanału wartość bieżącą oraz minimum, maksimum i średnią
+z czasu działania programu.
+.PP
+Program korzysta wyłącznie z biblioteki standardowej Pythona i
+.B niczego nie zapisuje:
+czyta
+.IR /sys ,
+.IR /proc
+oraz
+.IR /sys/class/hwmon .
+Nie koliduje z governorem GPU, CoolerControl ani ze skryptami odblokowującymi
+rdzenie CPU i jednostki CU.
+.PP
+Poza płytą BC\-250 program przechodzi w tryb ogólny: pokazuje czujniki, które
+faktycznie znajdzie, i pomija podpowiedzi dotyczące sprzętu, którego nie ma.
+.SH OPCJE
+.TP
+.BR \-i ", " \-\-interval " \fISEK\fR"
+Interwał odświeżania w sekundach. Domyślnie 1.0. W trybie interaktywnym można go
+zmieniać klawiszami
+.B +
+i
+.BR - .
+.TP
+.B \-\-once
+Wypisuje jednorazowy raport tekstowy i kończy działanie. Format wygodny do
+wklejania w zgłoszenia błędów.
+.TP
+.B \-\-json
+Wypisuje migawkę stanu w formacie JSON i kończy działanie. Przeznaczone dla
+skryptów i logowania w czasie.
+.TP
+.B \-\-lang " \fIpl\fR|\fIen\fR"
+Język interfejsu. Bez tej opcji język bierze się ze zmiennej
+.B BC250_LANG
+, a w dalszej kolejności z locale systemu; nierozpoznane ustawienie oznacza
+angielski.
+.TP
+.B \-\-demo
+Uruchamia symulowaną płytę BC\-250 zamiast czytać sprzęt. Służy do podglądu
+interfejsu i do rozwoju programu na maszynie innej niż BC\-250.
+.TP
+.B \-\-no\-diagnostics
+Start bez panelu Diagnostyka. Klawisz
+.B d
+pokazuje go i ukrywa w dowolnej chwili.
+.TP
+.BR \-V ", " \-\-version
+Wypisuje wersję.
+.TP
+.BR \-h ", " \-\-help
+Wypisuje skrócony opis opcji.
+.SH WIDOKI
+.SS Pulpit
+Panele GPU, CPU, płyty głównej i pamięci. Paski mają rozdzielczość ósemki znaku,
+wykresy historii rysowane są znakami Braille'a, a kolor odpowiada progom
+temperatury. Każdy panel pokazuje kilka przebiegów naraz \(em dla GPU
+temperaturę, moc i zegar \(em zamiast jednego rozciągniętego wykresu.
+Na wysokim oknie pod panelami pojawia się skrót tabeli czujników.
+Na dole pojawia się panel
+.B Diagnostyka
+z wykrytymi problemami.
+.PP
+Panel CPU podaje liczbę rdzeni fizycznych i wątków w postaci
+.IR 8C/16T ,
+co ma znaczenie po odblokowaniu rdzeni, gdy sama liczba logicznych CPU myli.
+Jeżeli lista wątków nie mieści się w oknie, program pisze ile ich pominął.
+.SS Czujniki
+Tabela wszystkich kanałów
+.BR hwmon ,
+pogrupowana według układów, z kolumnami
+.IR Teraz ,
+.IR Min ,
+.IR Maks
+i
+.IR Średnia .
+Odpowiednik okna czujników w HWiNFO.
+.SH KLAWISZE
+.TP
+.BR q ", " Esc
+Wyjście.
+.TP
+.BR Tab ", " 1 ", " 2
+Przełączanie między pulpitem a tabelą czujników.
+.TP
+.BR \(ua " " \(da " " PgUp " " PgDn " " Home " " End
+Przewijanie tabeli czujników.
+.TP
+.BR p ", " spacja
+Wstrzymanie odświeżania.
+.TP
+.B r
+Wyzerowanie zebranych minimów, maksimów i średnich.
+.TP
+.BR + ", " \-
+Zmiana interwału odświeżania o 0,25 s (zakres 0,25\(en10 s).
+.TP
+.BR h ", " ?
+Ekran pomocy.
+.SH DIAGNOSTYKA
+Program rozpoznaje znane pułapki płyty BC\-250 i zamiast podawać mylące liczby
+wyjaśnia ich przyczynę:
+.TP
+.B Obciążenie GPU niedostępne
+Sterownik amdgpu nie wypełnia pola aktywności w
+.IR gpu_metrics ;
+bajty 0x1C\(en0x1D pozostają na wartości 0xFFFF. To źródło znanego odczytu
+\(lq655%\(rq w MangoHud. Naprawia to usługa
+.B cyan\-skillfish\-governor\-smu
+z domyślną opcją
+.IR fix\-metrics .
+.TP
+.B GPU zablokowane na 1500 MHz
+Najwyższy poziom DPM wynosi 1500 MHz i żadna usługa
+.B cyan\-skillfish\-governor\-*
+nie działa. Bez governora GPU nie skaluje się powyżej tej częstotliwości.
+.TP
+.B Bzdurne wartości pp_dpm_sclk
+Po odblokowaniu ośmiu rdzeni CPU jądro raportuje błędne zegary. Gdy cała tabela
+jest zaniżona (na przykład
+.I 15Mhz
+zamiast
+.IR 1500Mhz ),
+program mnoży ją przez 100 i sygnalizuje korektę. Gdy błędny jest tylko aktywny
+poziom (na przykład 98 MHz przy zakresie 1000\(en2000 MHz), żaden mnożnik nie
+pasuje, więc zegar GPU jest brany z uśrednionego pola
+.IR gpu_metrics ,
+a przy konfiguracji governora szacowany także z vddgfx na jego krzywej napięć.
+Samo GPU działa normalnie \(em to błąd raportowania, nie wydajności.
+.TP
+.B Moduł SuperIO
+Rozróżnia
+.B nct6683
+(tylko odczyt) od
+.B nct6687
+(odczyt oraz sterowanie PWM) i przypomina, którego wymaga sterowanie wentylatorem.
+.TP
+.B Progi temperatur
+GPU 85/90 \(deC, CPU 80/90 \(deC, NVMe 70/80 \(deC \(em wartości ostrzegawcze
+i krytyczne za dokumentacją społecznościową BC\-250.
+.TP
+.B Wentylatory na 0 RPM
+Przy działającym module SuperIO oznacza to zwykle wentylator wpięty poza
+monitorowane złącza J1 i J4003 albo tryb wentylatorów ustawiony w BIOS.
+.SH PLIKI
+.TP
+.I /sys/class/drm/card*/device/
+Dane karty amdgpu: identyfikator PCI,
+.IR pp_dpm_sclk ,
+.IR pp_dpm_mclk ,
+.IR gpu_metrics ,
+.IR gpu_busy_percent ,
+.IR mem_info_vram_* ,
+.IR power_dpm_force_performance_level .
+.TP
+.I /sys/class/hwmon/hwmon*/
+Temperatury, napięcia, obroty wentylatorów, PWM i pobór mocy z układów
+amdgpu, k10temp, nct6686 oraz nvme.
+.TP
+.I /proc/stat ", " /proc/meminfo ", " /proc/loadavg ", " /proc/modules
+Obciążenie rdzeni, pamięć, średnie obciążenie systemu, załadowane moduły.
+.TP
+.I /sys/devices/system/cpu/cpu*/cpufreq/
+Bieżące zegary CPU oraz nazwa governora i sterownika.
+.SH ŚRODOWISKO
+.TP
+.B BC250_LANG
+Język interfejsu
+.RI ( pl
+albo
+.IR en ),
+gdy nie podano
+.BR \-\-lang .
+.SH PRZYKŁADY
+Monitor interaktywny odświeżany co pół sekundy:
+.PP
+.RS
+.EX
+bc250\-mon \-i 0.5
+.EE
+.RE
+.PP
+Raport do zgłoszenia błędu:
+.PP
+.RS
+.EX
+bc250\-mon \-\-once > bc250\-stan.txt
+.EE
+.RE
+.PP
+Logowanie temperatury GPU co 5 sekund:
+.PP
+.RS
+.EX
+while sleep 5; do bc250\-mon \-\-json | jq \-r '[now, .gpu.temp_c, .gpu.power_w] | @csv'; done
+.EE
+.RE
+.PP
+Podgląd interfejsu bez płyty BC\-250:
+.PP
+.RS
+.EX
+bc250\-mon \-\-demo
+.EE
+.RE
+.SH KODY WYJŚCIA
+.TP
+.B 0
+Zakończono poprawnie.
+.TP
+.B 2
+Brak terminala interaktywnego przy uruchomieniu bez
+.B \-\-once
+lub
+.BR \-\-json .
+.SH WYMAGANIA
+Python 3.9 lub nowszy. Czujniki płyty wymagają załadowanego modułu SuperIO:
+.B modprobe nct6687 force=true
+(pełny odczyt oraz PWM) albo
+.B modprobe nct6683 force=true
+(tylko odczyt).
+.SH ZOBACZ TAKŻE
+.BR sensors (1),
+.BR btop (1),
+.BR nvtop (1),
+.BR radeontop (1),
+.BR coolercontrol (1)
+.PP
+Dokumentacja społecznościowa BC\-250:
+.UR https://github.com/elektricM/amd-bc250-docs
+.UE
+.SH BŁĘDY
+Zgłoszenia:
+.UR https://github.com/zvgelo/bc250-tool-kit/issues
+.UE
+Do zgłoszenia warto dołączyć wynik polecenia
+.BR "bc250-mon --once" .

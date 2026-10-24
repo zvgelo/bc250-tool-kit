@@ -1,0 +1,4 @@
+# Development-only dependencies. bc250-mon itself needs nothing outside the
+# standard library — this is required solely by dev/tuishot.py, the TUI layout
+# preview that works without a physical board.
+pyte>=0.8

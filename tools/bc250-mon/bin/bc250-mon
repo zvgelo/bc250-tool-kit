@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+"""bc250-mon launcher — works from the repository and through a ~/.local/bin symlink."""
+
+import os
+import sys
+
+# realpath, not abspath: once installed this file is a symlink, and the package
+# sits next to the original rather than next to the link
+tool_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.insert(0, tool_dir)
+
+from bc250mon.cli import main  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(main())
